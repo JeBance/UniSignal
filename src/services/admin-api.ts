@@ -1,0 +1,342 @@
+import express, { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
+import { ClientRepository } from '../db/repositories/client-repository';
+import { ChannelRepository } from '../db/repositories/channel-repository';
+import { MessageRepository } from '../db/repositories/message-repository';
+import { checkDatabaseConnection } from '../db/connection';
+
+export interface AdminApiConfig {
+  adminMasterKey: string;
+  port: number;
+}
+
+/**
+ * Admin HTTP API
+ * Порт 8080, все эндпоинты требуют X-Admin-Key заголовок
+ */
+export class AdminApi {
+  private app: express.Application;
+  private config: AdminApiConfig;
+  private clientRepo: ClientRepository;
+  private channelRepo: ChannelRepository;
+  private messageRepo: MessageRepository;
+
+  constructor(config: AdminApiConfig) {
+    this.app = express();
+    this.config = config;
+    this.clientRepo = new ClientRepository();
+    this.channelRepo = new ChannelRepository();
+    this.messageRepo = new MessageRepository();
+
+    this.setupMiddleware();
+    this.setupRoutes();
+  }
+
+  /**
+   * Настройка middleware
+   */
+  private setupMiddleware(): void {
+    this.app.use(express.json());
+
+    // Логгирование запросов
+    this.app.use((req: Request, _res: Response, next: NextFunction) => {
+      logger.debug({ method: req.method, path: req.path }, 'HTTP запрос');
+      next();
+    });
+  }
+
+  /**
+   * Настройка роутов
+   */
+  private setupRoutes(): void {
+    // Public endpoints
+    this.app.get('/health', this.healthCheck.bind(this));
+
+    // Admin endpoints (требуют аутентификации)
+    this.app.use('/admin', this.adminAuthMiddleware.bind(this));
+    
+    // Clients
+    this.app.post('/admin/clients', this.createClient.bind(this));
+    this.app.get('/admin/clients', this.getClients.bind(this));
+    this.app.delete('/admin/clients/:id', this.deleteClient.bind(this));
+
+    // Channels
+    this.app.post('/admin/channels', this.addChannel.bind(this));
+    this.app.get('/admin/channels', this.getChannels.bind(this));
+    this.app.delete('/admin/channels/:chatId', this.deleteChannel.bind(this));
+    this.app.patch('/admin/channels/:chatId/toggle', this.toggleChannel.bind(this));
+
+    // Stats
+    this.app.get('/admin/stats', this.getStats.bind(this));
+
+    // 404 handler
+    this.app.use((_req: Request, res: Response) => {
+      res.status(404).json({ error: 'Not Found' });
+    });
+  }
+
+  /**
+   * Middleware для проверки админского ключа
+   */
+  private adminAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (!adminKey || adminKey !== this.config.adminMasterKey) {
+      logger.warn(
+        { path: req.path, hasKey: !!adminKey },
+        'Неверный или отсутствующий X-Admin-Key'
+      );
+      res.status(401).json({ error: 'Unauthorized: Invalid or missing X-Admin-Key' });
+      return;
+    }
+
+    next();
+  }
+
+  /**
+   * Health check endpoint
+   */
+  private async healthCheck(_req: Request, res: Response): Promise<void> {
+    try {
+      const dbOk = await checkDatabaseConnection();
+      
+      res.json({
+        status: 'ok',
+        service: 'UniSignal Relay',
+        timestamp: new Date().toISOString(),
+        checks: {
+          database: dbOk ? 'ok' : 'error',
+        },
+      });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка health check');
+      res.status(500).json({
+        status: 'error',
+        error: 'Internal server error',
+      });
+    }
+  }
+
+  /**
+   * POST /admin/clients - Создание клиента
+   */
+  private async createClient(_req: Request, res: Response): Promise<void> {
+    try {
+      const client = await this.clientRepo.create();
+      
+      if (!client) {
+        res.status(500).json({ error: 'Failed to create client' });
+        return;
+      }
+
+      logger.info({ clientId: client.id }, 'Клиент создан');
+      
+      res.status(201).json({
+        id: client.id,
+        api_key: client.api_key,
+        is_active: client.is_active,
+        created_at: client.created_at,
+      });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка создания клиента');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * GET /admin/clients - Список клиентов
+   */
+  private async getClients(_req: Request, res: Response): Promise<void> {
+    try {
+      const clients = await this.clientRepo.getAll();
+      
+      res.json({
+        count: clients.length,
+        clients: clients.map(c => ({
+          id: c.id,
+          api_key: c.api_key,
+          is_active: c.is_active,
+          created_at: c.created_at,
+        })),
+      });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка получения клиентов');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * DELETE /admin/clients/:id - Удаление клиента
+   */
+  private async deleteClient(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const success = await this.clientRepo.delete(id);
+      
+      if (!success) {
+        res.status(500).json({ error: 'Failed to delete client' });
+        return;
+      }
+
+      logger.info({ clientId: id }, 'Клиент удалён');
+      res.json({ success: true });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка удаления клиента');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * POST /admin/channels - Добавление канала
+   */
+  private async addChannel(req: Request, res: Response): Promise<void> {
+    try {
+      const { chat_id, name, is_active } = req.body;
+
+      if (!chat_id || !name) {
+        res.status(400).json({ error: 'chat_id and name are required' });
+        return;
+      }
+
+      const channel = await this.channelRepo.addChannel({
+        chat_id: parseInt(chat_id, 10),
+        name,
+        is_active: is_active ?? true,
+      });
+
+      if (!channel) {
+        res.status(500).json({ error: 'Failed to add channel' });
+        return;
+      }
+
+      logger.info({ chatId: channel.chat_id, name: channel.name }, 'Канал добавлен');
+      
+      res.status(201).json(channel);
+    } catch (err) {
+      logger.error({ err }, 'Ошибка добавления канала');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * GET /admin/channels - Список каналов
+   */
+  private async getChannels(req: Request, res: Response): Promise<void> {
+    try {
+      const all = req.query.all === 'true';
+      const channels = all 
+        ? await this.channelRepo.getAllChannels()
+        : await this.channelRepo.getActiveChannels();
+      
+      res.json({
+        count: channels.length,
+        channels,
+      });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка получения каналов');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * DELETE /admin/channels/:chatId - Удаление канала
+   */
+  private async deleteChannel(req: Request, res: Response): Promise<void> {
+    try {
+      const { chatId } = req.params;
+      const success = await this.channelRepo.deleteChannel(parseInt(chatId, 10));
+      
+      if (!success) {
+        res.status(500).json({ error: 'Failed to delete channel' });
+        return;
+      }
+
+      logger.info({ chatId }, 'Канал удалён');
+      res.json({ success: true });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка удаления канала');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * PATCH /admin/channels/:chatId/toggle - Переключение статуса канала
+   */
+  private async toggleChannel(req: Request, res: Response): Promise<void> {
+    try {
+      const { chatId } = req.params;
+      const { is_active } = req.body;
+
+      if (typeof is_active !== 'boolean') {
+        res.status(400).json({ error: 'is_active (boolean) is required' });
+        return;
+      }
+
+      const success = await this.channelRepo.updateChannelStatus(
+        parseInt(chatId, 10),
+        is_active
+      );
+      
+      if (!success) {
+        res.status(500).json({ error: 'Failed to update channel' });
+        return;
+      }
+
+      logger.info({ chatId, isActive: is_active }, 'Статус канала обновлён');
+      res.json({ success: true });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка обновления статуса канала');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * GET /admin/stats - Статистика
+   */
+  private async getStats(_req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await this.messageRepo.getStats();
+      const channels = await this.channelRepo.getActiveChannels();
+      const clients = await this.clientRepo.getAll();
+
+      res.json({
+        messages: stats || {
+          total: 0,
+          today: 0,
+          with_ticker: 0,
+          long_count: 0,
+          short_count: 0,
+        },
+        channels: {
+          active: channels.length,
+        },
+        clients: {
+          total: clients.length,
+          active: clients.filter(c => c.is_active).length,
+        },
+      });
+    } catch (err) {
+      logger.error({ err }, 'Ошибка получения статистики');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * Запуск сервера
+   */
+  public start(): void {
+    this.app.listen(this.config.port, () => {
+      logger.info(
+        { port: this.config.port },
+        `🌐 Admin HTTP API запущен на порту ${this.config.port}`
+      );
+    });
+  }
+
+  /**
+   * Получение Express приложения (для тестов)
+   */
+  public getApp(): express.Application {
+    return this.app;
+  }
+}

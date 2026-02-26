@@ -6,6 +6,7 @@ import { ChannelRepository } from './db/repositories/channel-repository';
 import { MessageRepository } from './db/repositories/message-repository';
 import { MessageProcessor } from './services/message-processor';
 import { createSignalParser } from './services/parser';
+import { AdminApi } from './services/admin-api';
 
 // Загрузка переменных окружения
 config();
@@ -101,6 +102,22 @@ async function main() {
   // Подключение к Telegrab
   telegrabClient.connect();
 
+  // Инициализация Admin HTTP API
+  const adminMasterKey = process.env.ADMIN_MASTER_KEY;
+  const port = parseInt(process.env.PORT || '8080', 10);
+
+  if (!adminMasterKey) {
+    logger.error('ADMIN_MASTER_KEY не указан');
+    process.exit(1);
+  }
+
+  const adminApi = new AdminApi({
+    adminMasterKey,
+    port,
+  });
+
+  adminApi.start();
+
   // Периодический сброс буфера (каждые 30 секунд)
   const bufferFlushInterval = setInterval(async () => {
     const bufferSize = messageProcessor.getBufferSize();
@@ -110,8 +127,9 @@ async function main() {
     }
   }, 30000);
 
-  logger.info(`📡 Сервер слушает порт ${process.env.PORT || 8080}`);
+  logger.info(`📡 Порт: ${port}`);
   logger.info('🔌 Подключение к Telegrab WS установлено');
+  logger.info('🌐 Admin HTTP API запущен');
 
   // Обработка сигналов завершения
   process.on('SIGINT', async () => {
