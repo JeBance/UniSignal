@@ -7,6 +7,8 @@ import { MessageRepository } from './db/repositories/message-repository';
 import { MessageProcessor } from './services/message-processor';
 import { createSignalParser } from './services/parser';
 import { AdminApi } from './services/admin-api';
+import { ClientWsServer } from './services/client-ws';
+import { ClientRepository } from './db/repositories/client-repository';
 
 // Загрузка переменных окружения
 config();
@@ -32,9 +34,10 @@ async function main() {
 
   logger.info('✅ Подключение к базе данных успешно');
 
-  // Инициализация репозиториев и процессора
+  // Инициализация репозиториев
   const channelRepo = new ChannelRepository();
   const messageRepo = new MessageRepository();
+  const clientRepo = new ClientRepository();
   
   // Создание парсера сигналов
   const parseSignal = createSignalParser();
@@ -84,7 +87,10 @@ async function main() {
           '✅ Сообщение обработано'
         );
         
-        // TODO: Этап 6 - отправка клиентам через WebSocket
+        // Трансляция клиентам через WebSocket
+        if (clientWsServer) {
+          clientWsServer.broadcast(processed);
+        }
       }
     } else if (event.type === 'message_edited') {
       logger.debug({ event }, 'Сообщение отредактировано (игнорируем)');
@@ -118,6 +124,16 @@ async function main() {
 
   adminApi.start();
 
+  // Инициализация Client WebSocket сервера
+  const clientWsServer = new ClientWsServer(
+    {
+      port: port, // Тот же порт, другой путь
+      path: '/ws',
+      authTimeout: 5000,
+    },
+    clientRepo
+  );
+
   // Периодический сброс буфера (каждые 30 секунд)
   const bufferFlushInterval = setInterval(async () => {
     const bufferSize = messageProcessor.getBufferSize();
@@ -127,32 +143,53 @@ async function main() {
     }
   }, 30000);
 
+  // Периодический лог статистики (каждые 60 секунд)
+  const statsInterval = setInterval(() => {
+    const clientCount = clientWsServer.getClientCount();
+    const bufferSize = messageProcessor.getBufferSize();
+    logger.info(
+      { clients: clientCount, buffer: bufferSize },
+      '📊 Статистика'
+    );
+  }, 60000);
+
   logger.info(`📡 Порт: ${port}`);
   logger.info('🔌 Подключение к Telegrab WS установлено');
   logger.info('🌐 Admin HTTP API запущен');
+  logger.info('🔗 Client WS сервер запущен (путь: /ws)');
 
   // Обработка сигналов завершения
   process.on('SIGINT', async () => {
     logger.info('Получен сигнал SIGINT, завершение работы...');
     clearInterval(bufferFlushInterval);
+    clearInterval(statsInterval);
+    
     telegrabClient.close();
+    clientWsServer.close();
     
     // Финальный сброс буфера
     await messageProcessor.flushBuffer();
     
     await closeDatabase();
+    
+    logger.info('✅ Завершение работы успешно');
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
     logger.info('Получен сигнал SIGTERM, завершение работы...');
     clearInterval(bufferFlushInterval);
+    clearInterval(statsInterval);
+    
     telegrabClient.close();
+    clientWsServer.close();
     
     // Финальный сброс буфера
     await messageProcessor.flushBuffer();
     
     await closeDatabase();
+    
+    logger.info('✅ Завершение работы успешно');
     process.exit(0);
   });
 }
