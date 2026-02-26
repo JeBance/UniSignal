@@ -247,7 +247,7 @@ export class SignalParser {
     }
 
     // Сначала пробуем стандартный паттерн
-    let value = this.extractByRegex(text, config.pattern, config.group ?? 1);
+    const value = this.extractByRegex(text, config.pattern, config.group ?? 1);
 
     if (value) {
       // Если значение содержит "%", извлекаем число после дефиса
