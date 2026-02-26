@@ -92,8 +92,10 @@ LOG_LEVEL=info
 ADMIN_MASTER_KEY=super_secret_admin_key_change_me
 
 # Telegrab
-TELEGRAB_WS_URL=ws://194.87.214.40:3000/ws
-TELEGRAB_API_KEY=tg_f10125b9443d4f5189e69108112c34d9
+# Если Telegrab на том же сервере: ws://host.docker.internal:3000/ws
+# Если Telegrab на удалённом сервере: ws://<ip>:3000/ws
+TELEGRAB_WS_URL=ws://host.docker.internal:3000/ws
+TELEGRAB_API_KEY=<your_telegrab_api_key>
 
 # Database
 DATABASE_URL=postgresql://unisignal:unisignal_password@db:5432/unisignal
@@ -102,29 +104,18 @@ DATABASE_URL=postgresql://unisignal:unisignal_password@db:5432/unisignal
 ### 3. Запуск через Docker Compose
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+> **Примечание:** Миграции базы данных применяются автоматически при каждом запуске.
 
 Проверка логов:
 
 ```bash
-docker-compose logs -f app
+docker compose logs -f app
 ```
 
-### 4. Применение миграций БД
-
-```bash
-# Внутри контейнера
-docker-compose exec app npm run db:migrate:up
-```
-
-Или локально (требуется PostgreSQL):
-
-```bash
-npm run db:migrate:up
-```
-
-### 5. Проверка работоспособности
+### 4. Проверка работоспособности
 
 ```bash
 curl http://localhost:8080/health
@@ -157,6 +148,8 @@ curl http://localhost:8080/health
 | `TELEGRAB_WS_URL` | **Да** | URL WebSocket Telegrab | — |
 | `TELEGRAB_API_KEY` | **Да** | API-ключ для Telegrab | — |
 | `DATABASE_URL` | **Да** | Connection string PostgreSQL | — |
+
+> **Примечание для Docker:** Если Telegrab запущен на хост-машине, используйте `ws://host.docker.internal:3000/ws`. На Linux может потребоваться добавить `--add-host=host.docker.internal:host-gateway` к docker-compose.
 
 ### Конфигурация парсеров
 
@@ -440,7 +433,22 @@ ws.on('error', (err) => {
 
 ## 🛠 Разработка
 
-### Локальный запуск
+### Локальная разработка с Docker
+
+Для разработки с hot reload используйте `docker-compose.override.yml`:
+
+```bash
+cp docker-compose.override.example docker-compose.override.yml
+# Отредактируйте TELEGRAB_API_KEY в docker-compose.override.yml
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+```
+
+Это включит:
+- Hot reload (tsx watch)
+- Логирование уровня debug
+- Volume для исходного кода
+
+### Локальный запуск (без Docker)
 
 ```bash
 # Установка зависимостей

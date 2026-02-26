@@ -1,0 +1,19 @@
+# Docker Compose override для разработки
+# Использование: docker compose -f docker-compose.yml -f docker-compose.override.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8080
+      - LOG_LEVEL=debug
+      - ADMIN_MASTER_KEY=super_secret_admin_key_change_me
+      - TELEGRAB_WS_URL=ws://host.docker.internal:3000/ws
+      - TELEGRAB_API_KEY=<your_telegrab_api_key>
+      - DATABASE_URL=postgresql://unisignal:unisignal_password@db:5432/unisignal
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+    command: npm run dev
