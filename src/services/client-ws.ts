@@ -76,7 +76,6 @@ export class ClientWsServer {
    */
   private handleConnection(ws: WebSocket, ip: string): void {
     const authTimeout = this.config.authTimeout || 5000;
-    let isAlive = true;
 
     // Таймаут на аутентификацию
     const authTimer = setTimeout(() => {
@@ -161,12 +160,11 @@ export class ClientWsServer {
     // Обработка ошибок
     ws.on('error', (err: Error) => {
       logger.error({ err }, 'Ошибка WebSocket соединения');
-      isAlive = false;
     });
 
     // Ping/Pong для проверки alive
     ws.on('pong', () => {
-      isAlive = true;
+      // isAlive = true;
     });
   }
 

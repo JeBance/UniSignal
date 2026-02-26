@@ -21,7 +21,7 @@ export class MessageBuffer {
   add(data: unknown): boolean {
     if (this.buffer.length >= this.maxSize) {
       // Переполнение - удаляем oldest
-      const removed = this.buffer.shift();
+      this.buffer.shift();
       logger.warn(
         { bufferSize: this.buffer.length },
         `Буфер переполнен, удалено старое сообщение`

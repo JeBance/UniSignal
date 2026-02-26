@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import WebSocket from 'ws';
+import express from 'express';
+import { createServer } from 'http';
 import { ClientRepository } from '../src/db/repositories/client-repository';
 import { ClientWsServer } from '../src/services/client-ws';
 
@@ -9,14 +11,26 @@ import { ClientWsServer } from '../src/services/client-ws';
 describe('ClientWsServer', () => {
   let wss: ClientWsServer;
   let clientRepo: ClientRepository;
+  let httpServer: ReturnType<typeof createServer>;
   const testPort = 9877; // Уникальный порт
 
   beforeAll(async () => {
     clientRepo = new ClientRepository();
+
+    // Создаём HTTP сервер для интеграции с WebSocket
+    const app = express();
+    httpServer = createServer(app);
     
+    // Запускаем HTTP сервер
+    await new Promise<void>((resolve) => {
+      httpServer.listen(testPort, () => {
+        resolve();
+      });
+    });
+
     wss = new ClientWsServer(
       {
-        port: testPort,
+        httpServer,
         path: '/ws',
         authTimeout: 3000,
       },
@@ -31,40 +45,44 @@ describe('ClientWsServer', () => {
     if (wss) {
       wss.close();
     }
+    if (httpServer) {
+      httpServer.close();
+    }
   });
 
   describe('Connection', () => {
-    it('должен принимать WebSocket подключения', (done) => {
-      const ws = new WebSocket(`ws://localhost:${testPort}/ws`);
+    it('должен принимать WebSocket подключения', async () => {
+      return new Promise<void>((resolve, reject) => {
+        const ws = new WebSocket(`ws://localhost:${testPort}/ws`);
 
-      ws.on('open', () => {
-        expect(ws.readyState).toBe(WebSocket.OPEN);
-        ws.close();
-        done();
-      });
+        ws.on('open', () => {
+          expect(ws.readyState).toBe(WebSocket.OPEN);
+          ws.close();
+          resolve();
+        });
 
-      ws.on('error', () => {
-        // Игнорируем ошибки для этого теста
-        done();
+        ws.on('error', (err) => {
+          reject(err);
+        });
       });
     });
   });
 
   describe('Client tracking', () => {
-    it('должен отслеживать количество подключений', (done) => {
-      const ws1 = new WebSocket(`ws://localhost:${testPort}/ws`);
-      let connected = false;
+    it('должен отслеживать количество подключений', async () => {
+      return new Promise<void>((resolve, reject) => {
+        const ws1 = new WebSocket(`ws://localhost:${testPort}/ws`);
 
-      ws1.on('open', () => {
-        connected = true;
-        const count = wss.getClientCount();
-        expect(count).toBeGreaterThanOrEqual(0);
-        ws1.close();
-        done();
-      });
+        ws1.on('open', () => {
+          const count = wss.getClientCount();
+          expect(count).toBeGreaterThanOrEqual(0);
+          ws1.close();
+          resolve();
+        });
 
-      ws1.on('error', () => {
-        done();
+        ws1.on('error', (err) => {
+          reject(err);
+        });
       });
     });
   });
