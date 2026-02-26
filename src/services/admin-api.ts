@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { Server } from 'http';
 import { logger } from '../utils/logger';
 import { ClientRepository } from '../db/repositories/client-repository';
 import { ChannelRepository } from '../db/repositories/channel-repository';
@@ -323,14 +324,16 @@ export class AdminApi {
 
   /**
    * Запуск сервера
+   * Возвращает HTTP сервер для интеграции с WebSocket
    */
-  public start(): void {
-    this.app.listen(this.config.port, () => {
+  public start(): Server {
+    const server = this.app.listen(this.config.port, () => {
       logger.info(
         { port: this.config.port },
         `🌐 Admin HTTP API запущен на порту ${this.config.port}`
       );
     });
+    return server;
   }
 
   /**

@@ -1,11 +1,11 @@
 import WebSocket, { WebSocketServer } from 'ws';
-import { IncomingMessage } from 'http';
+import { IncomingMessage, Server } from 'http';
 import { logger } from '../utils/logger';
 import { ClientRepository } from '../db/repositories/client-repository';
 import { ProcessedMessage } from './message-processor';
 
 export interface ClientWsConfig {
-  port: number;
+  httpServer: Server;
   path?: string;
   authTimeout?: number; // Время на аутентификацию (мс)
 }
@@ -28,7 +28,7 @@ interface ClientConnection {
 
 /**
  * Downstream WebSocket-сервер для клиентов
- * Порт 8080, путь /ws
+ * Интегрируется с существующим HTTP сервером Express
  */
 export class ClientWsServer {
   private wss: WebSocketServer;
@@ -41,9 +41,9 @@ export class ClientWsServer {
   constructor(config: ClientWsConfig, clientRepo: ClientRepository) {
     this.config = config;
     this.clientRepo = clientRepo;
-    
+
     this.wss = new WebSocketServer({
-      port: config.port,
+      server: config.httpServer,
       path: config.path || '/ws',
     });
 
@@ -66,7 +66,7 @@ export class ClientWsServer {
     });
 
     logger.info(
-      { port: this.config.port, path: this.config.path },
+      { path: this.config.path },
       `📡 Client WS сервер запущен`
     );
   }

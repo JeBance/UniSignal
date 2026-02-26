@@ -122,12 +122,12 @@ async function main() {
     port,
   });
 
-  adminApi.start();
+  const httpServer = adminApi.start();
 
-  // Инициализация Client WebSocket сервера
+  // Инициализация Client WebSocket сервера (интегрируется с HTTP сервером)
   const clientWsServer = new ClientWsServer(
     {
-      port: port, // Тот же порт, другой путь
+      httpServer,
       path: '/ws',
       authTimeout: 5000,
     },
