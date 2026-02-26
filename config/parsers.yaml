@@ -5,8 +5,8 @@ channels:
   # Шаблон для универсального парсинга
   default:
     direction:
-      long: ["⬆️", "🟢", "🚀", "Long", "LONG", "Buy", "BUY", "Лонг", "ЛОНГ", "Покупка"]
-      short: ["⬇️", "🔴", "📉", "Short", "SHORT", "Sell", "SELL", "Шорт", "ШОРТ", "Продажа"]
+      long: ["⬆️", "🟢", "🚀", "Long", "LONG", "Buy", "BUY", "Лонг", "ЛОНГ", "Покупка", "НОВАЯ ЦЕЛЬ РОСТА"]
+      short: ["⬇️", "🔴", "📉", "Short", "SHORT", "Sell", "SELL", "Шорт", "ШОРТ", "Продажа", "НОВАЯ ЦЕЛЬ СНИЖЕНИЯ"]
     ticker:
       pattern: "/\\b([A-Z]{3,6})(USDT|BTC|ETH|USD|BUSD)\\b/"
       group: 1
@@ -17,12 +17,68 @@ channels:
       pattern: "/(?:Stop Loss|Stop|SL|Стоп|СЛ)[:\\s]*([0-9.,]+)/i"
       group: 1
     take_profit:
-      pattern: "/(?:Take Profit|TP|Target|Тейк|ТП|Цель)[:\\s]*([0-9.,]+)/i"
+      pattern: "/(?:Take Profit|TP|Target|Тейк|ТП|Цель|Targets)[:\\s]*([0-9.,\\-]+)/i"
       group: 1
 
-  # Специфичные настройки для конкретных каналов (переопределяют default)
-  # Пример для VasyaBTC-Signals:
-  # -1002678035223:
-  #   direction:
-  #     long: ["🟢", "НОВАЯ ЦЕЛЬ РОСТА"]
-  #     short: ["🔴", "НОВАЯ ЦЕЛЬ СНИЖЕНИЯ"]
+  # VasyaBTC-Signals 🟢🔴 (chat_id: 2678035223)
+  # Форматы:
+  # - "🔴 **НОВАЯ ЦЕЛЬ СНИЖЕНИЯ** 🔴" → SHORT
+  # - "🟢BINANCE" → LONG
+  # - "**Вход:** 1857" / "**Entry:** 78.99"
+  # - "**Тейки:** 1856-1855" / "**Targets:** 80.33 - 81"
+  # - "**Stop:** 0.5% - 78.6"
+  2678035223:
+    direction:
+      long: ["🟢", "НОВАЯ ЦЕЛЬ РОСТА", "LONG", "Long"]
+      short: ["🔴", "НОВАЯ ЦЕЛЬ СНИЖЕНИЯ", "SHORT", "Short"]
+    ticker:
+      pattern: "/\\*\\*Ticker:\\*\\*\\s*([A-Z]{3,6})|\\*\\*Тикер:\\*\\*\\s*([A-Z]{3,6})|#([A-Z]{3,6})|([A-Z]{3,6})(USDT|BTC|ETH)/"
+      group: 1
+    entry:
+      pattern: "/\\*\\*(?:Вход|Entry)\\*\\*[:\\s]*([0-9.,]+)/i"
+      group: 1
+    stop_loss:
+      pattern: "/\\*\\*(?:Stop|Стоп)\\*\\*[:\\s]*[0-9.]*%?\\s*[-–]\\s*([0-9.,]+)/i"
+      group: 1
+    take_profit:
+      pattern: "/\\*\\*(?:Тейки|Targets)\\*\\*[:\\s]*([0-9.,\\s\\-–]+)/i"
+      group: 1
+
+  # AutoScalping (chat_id: -1001897594167)
+  # Форматы:
+  # - "#LONG" / "#SHORT"
+  # - "Entry:" / "SL:" / "TP:"
+  -1001897594167:
+    direction:
+      long: ["#LONG", "#Long", "🟢", "⬆️"]
+      short: ["#SHORT", "#Short", "🔴", "⬇️"]
+    ticker:
+      pattern: "/\\$([A-Z]{3,6})|([A-Z]{3,6})(USDT|BTC|ETH)/"
+      group: 1
+    entry:
+      pattern: "/Entry[:\\s]*([0-9.,]+)/i"
+      group: 1
+    stop_loss:
+      pattern: "/SL[:\\s]*([0-9.,]+)/i"
+      group: 1
+    take_profit:
+      pattern: "/TP[:\\s]*([0-9.,]+)/i"
+      group: 1
+
+  # Test канал (chat_id: -1002678035223)
+  -1002678035223:
+    direction:
+      long: ["LONG", "Long", "🟢", "⬆️", "Buy", "BUY"]
+      short: ["SHORT", "Short", "🔴", "⬇️", "Sell", "SELL"]
+    ticker:
+      pattern: "/\\b([A-Z]{3,6})(USDT|BTC|ETH|USD)/"
+      group: 1
+    entry:
+      pattern: "/(?:Entry|Вход)[:\\s]*([0-9.,]+)/i"
+      group: 1
+    stop_loss:
+      pattern: "/(?:SL|Stop|Стоп)[:\\s]*([0-9.,]+)/i"
+      group: 1
+    take_profit:
+      pattern: "/(?:TP|Target|Тейк)[:\\s]*([0-9.,]+)/i"
+      group: 1

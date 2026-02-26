@@ -34,6 +34,8 @@ export interface SignalData {
   entry_price: number | null;
   stop_loss: number | null;
   take_profit: number | null;
+  raw_direction?: string | null;
+  confidence?: number;
 }
 
 /**
@@ -86,13 +88,49 @@ export class SignalParser {
 
     const config = this.getConfigForChannel(chatId);
 
+    // Проверка на SENTIMENT - не является торговым сигналом
+    if (this.isSentiment(text)) {
+      return {
+        direction: null,
+        ticker: this.parseTicker(text, config.ticker),
+        entry_price: null,
+        stop_loss: null,
+        take_profit: null,
+      };
+    }
+
+    const direction = this.parseDirection(text, config.direction);
+    const ticker = this.parseTicker(text, config.ticker);
+    const entry_price = this.parsePrice(text, config.entry);
+    const stop_loss = this.parseStopLoss(text, config.stop_loss);
+    const take_profit = this.parseTakeProfit(text, config.take_profit);
+
     return {
-      direction: this.parseDirection(text, config.direction),
-      ticker: this.parseTicker(text, config.ticker),
-      entry_price: this.parsePrice(text, config.entry),
-      stop_loss: this.parsePrice(text, config.stop_loss),
-      take_profit: this.parsePrice(text, config.take_profit),
+      direction,
+      ticker,
+      entry_price,
+      stop_loss,
+      take_profit,
     };
+  }
+
+  /**
+   * Проверка на SENTIMENT сигнал (не торговый)
+   */
+  private isSentiment(text: string): boolean {
+    const sentimentPatterns = [
+      /#SENTIMENT/i,
+      /OS\s+\d+%\s*\/\s*\d+/i,  // OverSold
+      /OB\s+\d+%\s*\/\s*\d+/i,  // OverBought
+      /Day\s*-\s*[\d.]+%\s*\/\s*24h/i,
+    ];
+
+    for (const pattern of sentimentPatterns) {
+      if (pattern.test(text)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -188,10 +226,64 @@ export class SignalParser {
     }
 
     const value = this.extractByRegex(text, config.pattern, config.group ?? 1);
-    
+
     if (value) {
+      // Извлечение первого числа из диапазона (например, "1856-1855" → 1856)
+      const firstValue = value.split(/[\s,–-]+/)[0];
       // Замена запятой на точку для числового значения
-      const numericValue = parseFloat(value.replace(',', '.'));
+      const numericValue = parseFloat(firstValue.replace(',', '.'));
+      return isNaN(numericValue) ? null : numericValue;
+    }
+
+    return null;
+  }
+
+  /**
+   * Извлечение Stop Loss с поддержкой формата "0.5% - 78.6"
+   */
+  private parseStopLoss(text: string, config?: PatternConfig): number | null {
+    if (!config) {
+      return null;
+    }
+
+    // Сначала пробуем стандартный паттерн
+    let value = this.extractByRegex(text, config.pattern, config.group ?? 1);
+
+    if (value) {
+      // Если значение содержит "%", извлекаем число после дефиса
+      if (value.includes('%')) {
+        const parts = value.split(/[\s–-]+/);
+        // Ищем числовое значение после процента
+        for (const part of parts) {
+          const num = parseFloat(part.replace(',', '.'));
+          if (!isNaN(num) && num > 0) {
+            return num;
+          }
+        }
+      }
+      // Извлечение первого числа из диапазона
+      const firstValue = value.split(/[\s,–-]+/)[0];
+      const numericValue = parseFloat(firstValue.replace(',', '.'));
+      return isNaN(numericValue) ? null : numericValue;
+    }
+
+    return null;
+  }
+
+  /**
+   * Извлечение Take Profit с поддержкой диапазонов
+   */
+  private parseTakeProfit(text: string, config?: PatternConfig): number | null {
+    if (!config) {
+      return null;
+    }
+
+    const value = this.extractByRegex(text, config.pattern, config.group ?? 1);
+
+    if (value) {
+      // Извлечение первого числа из диапазона (например, "1856-1855" или "80.33 - 81")
+      const firstValue = value.split(/[\s,–-]+/)[0];
+      const numericValue = parseFloat(firstValue.replace(',', '.'));
       return isNaN(numericValue) ? null : numericValue;
     }
 
