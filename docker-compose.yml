@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: unisignal-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: unisignal
+      POSTGRES_PASSWORD: unisignal_password
+      POSTGRES_DB: unisignal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unisignal -d unisignal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unisignal-app
+    restart: unless-stopped
+    environment:
+      - PORT=${PORT:-8080}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ADMIN_MASTER_KEY=${ADMIN_MASTER_KEY}
+      - TELEGRAB_WS_URL=${TELEGRAB_WS_URL}
+      - TELEGRAB_API_KEY=${TELEGRAB_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+
+volumes:
+  postgres_data:
