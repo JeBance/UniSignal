@@ -39,7 +39,7 @@ UniSignal Relay подключается к [Telegrab](https://github.com/JeBanc
 ```
 ┌─────────────┐      WebSocket       ┌──────────────────┐
 │   Telegrab  │ ───────────────────► │  UniSignal Relay │
-│  (Upstream) │    ws://194.87...    │   (Port 8080)    │
+│  (Upstream) │    ws://194.87...    │   (Port 3001)    │
 └─────────────┘                      └────────┬─────────┘
                                               │
                     ┌─────────────────────────┼─────────────────────────┐
@@ -87,7 +87,7 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Проверить
-curl http://localhost:8080/health
+curl http://localhost:3001/health
 ```
 
 > **Примечание:** Миграции базы данных применяются автоматически при первом запуске.
@@ -113,7 +113,7 @@ cp .env.example .env
 
 ```bash
 # App
-PORT=8080
+PORT=3001
 LOG_LEVEL=info
 ADMIN_MASTER_KEY=super_secret_admin_key_change_me
 
@@ -144,7 +144,7 @@ docker compose logs -f app
 ### 4. Проверка работоспособности
 
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:3001/health
 ```
 
 Ответ:
@@ -168,7 +168,7 @@ curl http://localhost:8080/health
 
 | Переменная | Обязательна | Описание | По умолчанию |
 |------------|-------------|----------|--------------|
-| `PORT` | Нет | Порт для HTTP и WebSocket | `8080` |
+| `PORT` | Нет | Порт для HTTP и WebSocket | `3001` |
 | `LOG_LEVEL` | Нет | Уровень логирования | `info` |
 | `ADMIN_MASTER_KEY` | **Да** | Мастер-ключ для Admin API | — |
 | `TELEGRAB_WS_URL` | **Да** | URL WebSocket Telegrab | — |
@@ -214,7 +214,7 @@ channels:
 Создать нового клиента:
 
 ```bash
-curl -X POST http://localhost:8080/admin/clients \
+curl -X POST http://localhost:3001/admin/clients \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -234,7 +234,7 @@ curl -X POST http://localhost:8080/admin/clients \
 Получить список всех клиентов:
 
 ```bash
-curl http://localhost:8080/admin/clients \
+curl http://localhost:3001/admin/clients \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -243,7 +243,7 @@ curl http://localhost:8080/admin/clients \
 Отозвать ключ клиента:
 
 ```bash
-curl -X DELETE http://localhost:8080/admin/clients/<client-id> \
+curl -X DELETE http://localhost:3001/admin/clients/<client-id> \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -254,7 +254,7 @@ curl -X DELETE http://localhost:8080/admin/clients/<client-id> \
 Добавить канал в белый список:
 
 ```bash
-curl -X POST http://localhost:8080/admin/channels \
+curl -X POST http://localhost:3001/admin/channels \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{"chat_id": 5610580916, "name": "JeBance", "is_active": true}'
@@ -265,14 +265,14 @@ curl -X POST http://localhost:8080/admin/channels \
 Получить список активных каналов:
 
 ```bash
-curl http://localhost:8080/admin/channels \
+curl http://localhost:3001/admin/channels \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
 Получить все каналы (включая неактивные):
 
 ```bash
-curl "http://localhost:8080/admin/channels?all=true" \
+curl "http://localhost:3001/admin/channels?all=true" \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -281,7 +281,7 @@ curl "http://localhost:8080/admin/channels?all=true" \
 Убрать канал из фильтра:
 
 ```bash
-curl -X DELETE http://localhost:8080/admin/channels/5610580916 \
+curl -X DELETE http://localhost:3001/admin/channels/5610580916 \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -290,7 +290,7 @@ curl -X DELETE http://localhost:8080/admin/channels/5610580916 \
 Включить/выключить канал:
 
 ```bash
-curl -X PATCH http://localhost:8080/admin/channels/5610580916/toggle \
+curl -X PATCH http://localhost:3001/admin/channels/5610580916/toggle \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{"is_active": false}'
@@ -301,7 +301,7 @@ curl -X PATCH http://localhost:8080/admin/channels/5610580916/toggle \
 #### GET /admin/stats
 
 ```bash
-curl http://localhost:8080/admin/stats \
+curl http://localhost:3001/admin/stats \
   -H "X-Admin-Key: $ADMIN_MASTER_KEY"
 ```
 
@@ -333,7 +333,7 @@ curl http://localhost:8080/admin/stats \
 ### Подключение
 
 ```
-ws://localhost:8080/ws
+ws://localhost:3001/ws
 ```
 
 ### Аутентификация
@@ -391,7 +391,7 @@ ws://localhost:8080/ws
 ### Пример клиента на JavaScript
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+const ws = new WebSocket('ws://localhost:3001/ws');
 
 ws.on('open', () => {
   console.log('Connected, authenticating...');
