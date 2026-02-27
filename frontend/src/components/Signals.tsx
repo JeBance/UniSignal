@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination } from 'react-bootstrap';
+import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useToast } from '../contexts/ToastContext';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
@@ -223,6 +223,50 @@ export default function Signals({ adminKey }: SignalsProps) {
     setSignals([]);
   };
 
+  // Экспорт сигналов в CSV
+  const exportToCSV = () => {
+    const headers = ['ID', 'Канал', 'Тикер', 'Направление', 'Цена входа', 'Стоп-лосс', 'Тейк-профит', 'Время', 'Текст'];
+    const rows = filteredAndSortedSignals.map(s => [
+      s.id,
+      s.channel,
+      s.ticker || '',
+      s.direction || '',
+      s.entryPrice || '',
+      s.stopLoss || '',
+      s.takeProfit || '',
+      new Date(s.timestamp * 1000).toISOString(),
+      s.text?.replace(/[\n\r]+/g, ' ').substring(0, 100) || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    downloadFile(csvContent, 'signals.csv', 'text/csv');
+    toast.info('📥 Сигналы экспортированы в CSV');
+  };
+
+  // Экспорт сигналов в JSON
+  const exportToJSON = () => {
+    const jsonContent = JSON.stringify(filteredAndSortedSignals, null, 2);
+    downloadFile(jsonContent, 'signals.json', 'application/json');
+    toast.info('📥 Сигналы экспортированы в JSON');
+  };
+
+  // Скачивание файла
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Получение уникальных значений для фильтров
   const uniqueChannels = Array.from(new Set(signals.map(s => s.channel))).sort();
   const uniqueSignalTypes = Array.from(new Set(signals
@@ -417,15 +461,24 @@ export default function Signals({ adminKey }: SignalsProps) {
             >
               🗂️ Фильтры
             </Button>
-            <Button 
-              variant="outline-secondary" 
-              size="sm" 
+            <Button
+              variant="outline-secondary"
+              size="sm"
               onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
               className="me-2"
               title={`Сортировка: ${sortOrder === 'desc' ? 'Сначала новые' : 'Сначала старые'}`}
             >
               🕒 {sortOrder === 'desc' ? '↓' : '↑'}
             </Button>
+            <Dropdown className="d-inline me-2">
+              <Dropdown.Toggle variant="outline-success" size="sm" id="export-dropdown">
+                📥 Экспорт
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={exportToCSV}>CSV</Dropdown.Item>
+                <Dropdown.Item onClick={exportToJSON}>JSON</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
             <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
               Очистить
             </Button>
