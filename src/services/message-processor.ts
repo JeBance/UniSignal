@@ -115,6 +115,7 @@ export class MessageProcessor {
         take_profit: parsedSignal?.signal.trade_setup?.targets?.[0] || null,
         content_text: text,
         original_timestamp: new Date(message_date),
+        parsed_signal: parsedSignal ? (parsedSignal as unknown as Record<string, unknown>) : undefined,
       });
 
       if (!savedMessage) {

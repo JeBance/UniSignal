@@ -372,10 +372,10 @@ export default function Signals({ adminKey }: SignalsProps) {
                       </Button>
                     </td>
                     <td className="align-top" style={{ textAlign: 'left' }}>
-                      <pre className="mb-0 small" style={{ 
+                      <pre className="mb-0 small" style={{
                         fontSize: '11px',
                         backgroundColor: '#1a1a1a',
-                        color: signal.direction ? '#4ade80' : '#9ca3af',
+                        color: signal.parsedSignal ? '#4ade80' : '#9ca3af',
                         padding: '8px',
                         borderRadius: '4px',
                         textAlign: 'left',
@@ -385,13 +385,22 @@ export default function Signals({ adminKey }: SignalsProps) {
                         height: '200px',
                         overflow: 'auto'
                       }}>
-                        {JSON.stringify({
-                          direction: signal.direction || null,
-                          ticker: signal.ticker || null,
-                          entryPrice: signal.entryPrice || null,
-                          stopLoss: signal.stopLoss || null,
-                          takeProfit: signal.takeProfit || null
-                        }, null, 2)}
+                        {signal.parsedSignal ? JSON.stringify({
+                          type: signal.parsedSignal.signal?.type || null,
+                          ticker: signal.parsedSignal.signal?.instrument?.ticker || null,
+                          exchange: signal.parsedSignal.signal?.instrument?.exchange || null,
+                          direction: signal.parsedSignal.signal?.direction?.side || null,
+                          strength: signal.parsedSignal.signal?.direction?.strength || null,
+                          timeframe: signal.parsedSignal.signal?.timing?.timeframe || null,
+                          rsi: signal.parsedSignal.signal?.indicators?.rsi || null,
+                          pattern: signal.parsedSignal.signal?.direction?.pattern || null,
+                          pattern_strength: signal.parsedSignal.signal?.direction?.pattern_strength || null,
+                          entry_price: signal.parsedSignal.signal?.trade_setup?.entry_price || null,
+                          targets: signal.parsedSignal.signal?.trade_setup?.targets || null,
+                          stop_loss: signal.parsedSignal.signal?.trade_setup?.stop_loss || null,
+                          funding_rate: signal.parsedSignal.signal?.funding_info?.funding_rate || null,
+                          confidence: signal.parsedSignal.signal?.confidence || null,
+                        }, null, 2) : 'Нет данных парсинга'}
                       </pre>
                     </td>
                     <td className="align-top">

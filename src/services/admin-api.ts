@@ -454,17 +454,18 @@ export class AdminApi {
   private async getSignals(req: Request, res: Response): Promise<void> {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      
+
       const pool = getPool();
       const result = await pool.query(`
         SELECT m.id, m.direction, m.ticker, m.entry_price, m.stop_loss, m.take_profit,
-               m.content_text, m.original_timestamp, c.name as channel_name
+               m.content_text, m.original_timestamp, c.name as channel_name,
+               m.parsed_signal
         FROM messages m
         LEFT JOIN channels c ON m.channel_id = c.chat_id
         ORDER BY m.created_at DESC
         LIMIT $1
       `, [limit]);
-      
+
       const signals = result.rows.map((row: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
         id: row.id,
         channel: row.channel_name || 'Unknown',
@@ -475,6 +476,7 @@ export class AdminApi {
         takeProfit: row.take_profit ? parseFloat(row.take_profit) : null,
         text: row.content_text,
         timestamp: Math.floor(new Date(row.original_timestamp).getTime() / 1000),
+        parsedSignal: row.parsed_signal || null,
       }));
 
       res.json({ signals });

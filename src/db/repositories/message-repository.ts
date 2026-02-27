@@ -13,6 +13,7 @@ export interface Message {
   content_text: string;
   original_timestamp: Date;
   created_at: Date;
+  parsed_signal?: Record<string, unknown> | null;
 }
 
 export interface MessageInput {
@@ -25,6 +26,7 @@ export interface MessageInput {
   take_profit?: number | string | null;
   content_text: string;
   original_timestamp: Date | string;
+  parsed_signal?: Record<string, unknown> | null;
 }
 
 /**
@@ -55,15 +57,15 @@ export class MessageRepository {
     try {
       const result = await getPool().query<Message>(
         `INSERT INTO messages (
-          unique_hash, channel_id, direction, ticker, 
-          entry_price, stop_loss, take_profit, 
-          content_text, original_timestamp
+          unique_hash, channel_id, direction, ticker,
+          entry_price, stop_loss, take_profit,
+          content_text, original_timestamp, parsed_signal
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (unique_hash) DO NOTHING
-        RETURNING id, unique_hash, channel_id, direction, ticker, 
-                  entry_price, stop_loss, take_profit, 
-                  content_text, original_timestamp, created_at`,
+        RETURNING id, unique_hash, channel_id, direction, ticker,
+                  entry_price, stop_loss, take_profit,
+                  content_text, original_timestamp, created_at, parsed_signal`,
         [
           input.unique_hash,
           input.channel_id,
@@ -74,9 +76,10 @@ export class MessageRepository {
           input.take_profit ?? null,
           input.content_text,
           input.original_timestamp,
+          input.parsed_signal ?? null,
         ]
       );
-      
+
       if (result.rows.length === 0) {
         // Дубликат
         return null;

@@ -74,6 +74,79 @@ export interface Signal {
   takeProfit: number | null;
   text: string;
   timestamp: number;
+  parsedSignal?: {
+    signal_id: string;
+    timestamp: string;
+    source: {
+      channel: string;
+      channel_id: number;
+      message_id: number;
+      original_text: string;
+    };
+    signal: {
+      type: string;
+      priority: number;
+      instrument: {
+        ticker: string;
+        exchange: string;
+        project_info?: string;
+        asset_type: string;
+      };
+      timing?: {
+        timeframe?: string;
+        signal_time?: string;
+      };
+      direction?: {
+        side: 'long' | 'short' | 'neutral';
+        strength: 'strong' | 'medium' | 'weak';
+        pattern?: string;
+        pattern_strength?: number;
+        pattern_direction?: 'up' | 'down' | 'neutral';
+      };
+      indicators?: {
+        rsi?: number;
+        rsi_signal?: 'oversold' | 'overbought' | 'neutral';
+        sentiment?: {
+          day_change: number;
+          change_24h: number;
+          timeframe_zones: Array<{
+            timeframe: string;
+            zone: 'OS' | 'OB';
+            zone_percent: number;
+            rsi?: number;
+            trend: 'up' | 'down' | 'neutral';
+          }>;
+        };
+      };
+      trade_setup?: {
+        entry_price?: number;
+        current_price?: number;
+        targets?: number[];
+        stop_loss?: {
+          stop_0_5?: number;
+          stop_1?: number;
+        };
+        expected_profit?: string;
+      };
+      funding_info?: {
+        funding_rate: number;
+        funding_time: string;
+        receiver: 'longs' | 'shorts';
+        recommended_action: 'long' | 'short';
+        trading_link?: string;
+      };
+      confidence: {
+        score: number;
+        factors: string[];
+      };
+    };
+    metadata: {
+      parser_version: string;
+      processing_time_ms: number;
+      language: 'en' | 'ru' | 'mixed';
+      tags: string[];
+    };
+  } | null;
 }
 
 export const unisignalApi = {
