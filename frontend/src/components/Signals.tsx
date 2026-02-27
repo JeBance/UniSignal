@@ -788,7 +788,7 @@ export default function Signals({ adminKey }: SignalsProps) {
               <Form.Range
                 min={0}
                 max={100}
-                step={10}
+                step={1}
                 value={filterMinConfidence}
                 onChange={(e) => setFilterMinConfidence(Number(e.target.value))}
               />
