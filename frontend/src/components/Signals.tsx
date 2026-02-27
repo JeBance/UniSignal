@@ -405,31 +405,159 @@ export default function Signals({ adminKey }: SignalsProps) {
                     </td>
                     <td className="align-top">
                       <div>
-                        {signal.direction && (
-                          <Badge
-                            bg={signal.direction === 'LONG' ? 'success' : 'danger'}
-                            className="me-2"
-                          >
-                            {signal.direction}
-                          </Badge>
+                        {/* Тип сигнала и приоритет */}
+                        {signal.parsedSignal?.signal?.type && (
+                          <div className="mb-2">
+                            <Badge 
+                              bg={
+                                signal.parsedSignal.signal.type === 'strong_signal' ? 'danger' :
+                                signal.parsedSignal.signal.type === 'medium_signal' ? 'warning' :
+                                signal.parsedSignal.signal.type === 'funding_rate' ? 'info' :
+                                'secondary'
+                              }
+                              className="me-1"
+                            >
+                              {signal.parsedSignal.signal.type === 'strong_signal' && '🔴 Strong'}
+                              {signal.parsedSignal.signal.type === 'medium_signal' && '🟡 Medium'}
+                              {signal.parsedSignal.signal.type === 'entry_signal' && '📊 Entry'}
+                              {signal.parsedSignal.signal.type === 'quick_target' && '🎯 Quick'}
+                              {signal.parsedSignal.signal.type === 'sentiment' && '📈 Sentiment'}
+                              {signal.parsedSignal.signal.type === 'funding_rate' && '💰 Funding'}
+                            </Badge>
+                            {signal.parsedSignal.signal?.confidence?.score && (
+                              <Badge 
+                                bg={
+                                  signal.parsedSignal.signal.confidence.score >= 70 ? 'success' :
+                                  signal.parsedSignal.signal.confidence.score >= 50 ? 'warning' :
+                                  'secondary'
+                                }
+                                className="ms-1"
+                                title={`Confidence: ${signal.parsedSignal.signal.confidence.score}%`}
+                              >
+                                {signal.parsedSignal.signal.confidence.score}%
+                              </Badge>
+                            )}
+                          </div>
                         )}
-                        {signal.ticker && <strong>{signal.ticker}</strong>}
-                        <small className="text-muted d-block mb-2">{signal.channel}</small>
-                        
-                        <div className="small">
-                          {signal.entryPrice && (
-                            <div>📍 <strong>Вход:</strong> {signal.entryPrice}</div>
+
+                        {/* Направление и тикер */}
+                        <div className="mb-2">
+                          {signal.parsedSignal?.signal?.direction?.side && (
+                            <Badge
+                              bg={signal.parsedSignal.signal.direction.side === 'long' ? 'success' : 
+                                  signal.parsedSignal.signal.direction.side === 'short' ? 'danger' : 'secondary'}
+                              className="me-2"
+                              style={{ fontSize: '14px' }}
+                            >
+                              {signal.parsedSignal.signal.direction.side === 'long' && '⬆️ LONG'}
+                              {signal.parsedSignal.signal.direction.side === 'short' && '⬇️ SHORT'}
+                              {signal.parsedSignal.signal.direction.side === 'neutral' && '➡️ NEUTRAL'}
+                            </Badge>
                           )}
-                          {signal.stopLoss && (
-                            <div>🛑 <strong>SL:</strong> {signal.stopLoss}</div>
+                          {signal.parsedSignal?.signal?.instrument?.ticker && (
+                            <strong style={{ fontSize: '16px' }}>
+                              {signal.parsedSignal.signal.instrument.ticker}
+                            </strong>
                           )}
-                          {signal.takeProfit && (
-                            <div>🎯 <strong>TP:</strong> {signal.takeProfit}</div>
+                          {signal.parsedSignal?.signal?.instrument?.exchange && (
+                            <span className="text-muted ms-2">
+                              🏦 {signal.parsedSignal.signal.instrument.exchange}
+                            </span>
                           )}
                         </div>
-                        
-                        <div className="text-muted small mt-2">
-                          🕒 {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}
+
+                        {/* Детали сигнала */}
+                        <div className="small mb-2">
+                          {/* Таймфрейм */}
+                          {signal.parsedSignal?.signal?.timing?.timeframe && (
+                            <div className="text-muted">
+                              ⏱️ <strong>Таймфрейм:</strong> {signal.parsedSignal.signal.timing.timeframe}
+                            </div>
+                          )}
+
+                          {/* Паттерн */}
+                          {signal.parsedSignal?.signal?.direction?.pattern && (
+                            <div className="text-muted">
+                              📐 <strong>Паттерн:</strong> {signal.parsedSignal.signal.direction.pattern.replace('_', ' ')}
+                              {signal.parsedSignal.signal.direction.pattern_strength && (
+                                <span className="ms-2">
+                                  ({signal.parsedSignal.signal.direction.pattern_strength}%)
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* RSI */}
+                          {signal.parsedSignal?.signal?.indicators?.rsi && (
+                            <div className="text-muted">
+                              📊 <strong>RSI:</strong> {signal.parsedSignal.signal.indicators.rsi}
+                              {signal.parsedSignal.signal.indicators.rsi_signal && (
+                                <span className={`ms-2 ${
+                                  signal.parsedSignal.signal.indicators.rsi_signal === 'overbought' ? 'text-danger' :
+                                  signal.parsedSignal.signal.indicators.rsi_signal === 'oversold' ? 'text-success' :
+                                  ''
+                                }`}>
+                                  ({signal.parsedSignal.signal.indicators.rsi_signal})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Торговые уровни */}
+                        {(signal.parsedSignal?.signal?.trade_setup || signal.entryPrice) && (
+                          <div className="small mb-2 p-2 bg-light rounded">
+                            {signal.parsedSignal?.signal?.trade_setup?.entry_price && (
+                              <div>📍 <strong>Вход:</strong> {signal.parsedSignal.signal.trade_setup.entry_price}</div>
+                            )}
+                            {signal.parsedSignal?.signal?.trade_setup?.targets && signal.parsedSignal.signal.trade_setup.targets.length > 0 && (
+                              <div>
+                                🎯 <strong>Цели:</strong> {signal.parsedSignal.signal.trade_setup.targets.join(' / ')}
+                              </div>
+                            )}
+                            {signal.parsedSignal?.signal?.trade_setup?.stop_loss && (
+                              <>
+                                {signal.parsedSignal.signal.trade_setup.stop_loss.stop_0_5 && (
+                                  <div>🛑 <strong>SL 0.5%:</strong> {signal.parsedSignal.signal.trade_setup.stop_loss.stop_0_5}</div>
+                                )}
+                                {signal.parsedSignal.signal.trade_setup.stop_loss.stop_1 && (
+                                  <div>🛑 <strong>SL 1%:</strong> {signal.parsedSignal.signal.trade_setup.stop_loss.stop_1}</div>
+                                )}
+                              </>
+                            )}
+                            {signal.parsedSignal?.signal?.trade_setup?.expected_profit && (
+                              <div className="text-success">
+                                💰 <strong>Прибыль:</strong> {signal.parsedSignal.signal.trade_setup.expected_profit}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Funding Rate */}
+                        {signal.parsedSignal?.signal?.funding_info && (
+                          <div className="small mb-2 p-2 bg-light rounded">
+                            <div className="text-danger">
+                              💰 <strong>Funding Rate:</strong> {signal.parsedSignal.signal.funding_info.funding_rate}%
+                            </div>
+                            <div>
+                              📅 <strong>Время:</strong> {new Date(signal.parsedSignal.signal.funding_info.funding_time).toLocaleString('ru-RU')}
+                            </div>
+                            <div>
+                              👥 <strong>Получают:</strong> {signal.parsedSignal.signal.funding_info.receiver === 'longs' ? 'Лонги' : 'Шорты'}
+                            </div>
+                            <div className="text-success">
+                              💡 <strong>Рекомендация:</strong> {signal.parsedSignal.signal.funding_info.recommended_action.toUpperCase()}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Канал и время */}
+                        <div className="text-muted small mt-2 pt-2 border-top">
+                          <div>📺 <strong>Канал:</strong> {signal.channel}</div>
+                          <div>🕒 <strong>Время:</strong> {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}</div>
+                          {signal.parsedSignal?.metadata?.language && (
+                            <div>🌐 <strong>Язык:</strong> {signal.parsedSignal.metadata.language.toUpperCase()}</div>
+                          )}
                         </div>
                       </div>
                     </td>
