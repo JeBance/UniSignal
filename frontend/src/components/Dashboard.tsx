@@ -66,7 +66,7 @@ export default function Dashboard({ adminKey }: DashboardProps) {
       <h2 className="mb-4">📊 Dashboard</h2>
 
       <Row className="mb-4">
-        <Col md={3}>
+        <Col xs={6} md={3}>
           <Card bg="primary" text="white">
             <Card.Body>
               <Card.Title>Сообщения</Card.Title>
@@ -76,27 +76,27 @@ export default function Dashboard({ adminKey }: DashboardProps) {
           </Card>
         </Col>
 
-        <Col md={3}>
+        <Col xs={6} md={3}>
           <Card bg="success" text="white">
             <Card.Body>
-              <Card.Title>LONG сигналы</Card.Title>
+              <Card.Title>LONG</Card.Title>
               <Card.Text className="display-4">{stats.messages.long_count}</Card.Text>
               <small>С тикером: {stats.messages.with_ticker}</small>
             </Card.Body>
           </Card>
         </Col>
 
-        <Col md={3}>
+        <Col xs={6} md={3}>
           <Card bg="danger" text="white">
             <Card.Body>
-              <Card.Title>SHORT сигналы</Card.Title>
+              <Card.Title>SHORT</Card.Title>
               <Card.Text className="display-4">{stats.messages.short_count}</Card.Text>
-              <small>Активных каналов: {stats.channels.active}</small>
+              <small>Каналов: {stats.channels.active}</small>
             </Card.Body>
           </Card>
         </Col>
 
-        <Col md={3}>
+        <Col xs={6} md={3}>
           <Card bg="info" text="white">
             <Card.Body>
               <Card.Title>Клиенты</Card.Title>
@@ -108,7 +108,7 @@ export default function Dashboard({ adminKey }: DashboardProps) {
       </Row>
 
       <Row>
-        <Col md={6}>
+        <Col xs={12} md={6}>
           <Card>
             <Card.Header>
               <strong>📈 Статистика сообщений</strong>
@@ -140,7 +140,7 @@ export default function Dashboard({ adminKey }: DashboardProps) {
           </Card>
         </Col>
 
-        <Col md={6}>
+        <Col xs={12} md={6}>
           <Card>
             <Card.Header>
               <strong>👥 Клиенты и каналы</strong>

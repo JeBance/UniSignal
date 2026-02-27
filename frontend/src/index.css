@@ -179,3 +179,97 @@ body {
 .text-secondary-custom {
   color: var(--text-secondary) !important;
 }
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  /* Stack cards vertically on mobile */
+  .row > .col-md-3,
+  .row > .col-md-6 {
+    margin-bottom: 1rem;
+  }
+
+  /* Smaller fonts on mobile */
+  .display-4 {
+    font-size: 2rem;
+  }
+
+  /* Full width tables on mobile */
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  /* Compact navbar */
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  /* Hide less important columns on mobile */
+  .hide-mobile {
+    display: none;
+  }
+
+  /* Stack signal cards on mobile */
+  .signal-card-mobile {
+    flex-direction: column;
+  }
+
+  /* Adjust modal size on mobile */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  /* Compact filters on mobile */
+  .filters-mobile .form-group {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Adjust button sizes */
+  .btn-sm-mobile {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hide-tablet {
+    display: none;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  .hide-desktop {
+    display: none;
+  }
+}
+
+/* Container padding for mobile */
+@media (max-width: 576px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Touch-friendly targets for mobile */
+@media (max-width: 768px) {
+  button,
+  a,
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
+
+  .nav-link {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Improved scrolling for mobile */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
