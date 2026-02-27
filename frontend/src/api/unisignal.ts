@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// API URL определяется автоматически из текущего окна браузера
+const getApiBaseUrl = () => {
+  // Если запущено на сервере (не localhost), используем текущий origin
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    // Если это не localhost, используем текущий origin
+    if (!currentOrigin.includes('localhost') && !currentOrigin.includes('127.0.0.1')) {
+      return currentOrigin;
+    }
+  }
+  // Для локальной разработки
+  return import.meta.env.VITE_API_URL || 'http://localhost:3001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
