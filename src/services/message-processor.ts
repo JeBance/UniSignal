@@ -57,20 +57,34 @@ export class MessageProcessor {
    * Обработка сообщения от Telegrab
    */
   async processMessage(message: TelegrabMessage): Promise<ProcessedMessage | null> {
-    const { chat_id, chat_title, message_id, text, message_date } = message;
+    let { chat_id, chat_title, message_id, text, message_date } = message;
+
+    // Нормализация chat_id: Telegram использует разные форматы ID
+    // -100xxxxxxxxx для супергрупп (каналы)
+    // Telegrab может возвращать положительные ID без -100 префикса
+    let normalizedChatId = chat_id;
+    
+    if (chat_id > 0) {
+      // Положительный ID - добавляем -100 префикс для супергрупп
+      normalizedChatId = -1000000000000 - chat_id;
+    } else if (chat_id < 0 && String(chat_id).length < 13) {
+      // Отрицательный, но без -100 префикса (короткий ID)
+      normalizedChatId = -1000000000000 - Math.abs(chat_id);
+    }
+    // Иначе уже правильный формат -100xxxxxxxxx (13+ цифр)
 
     // 1. Фильтрация по каналу
-    const isChannelActive = await this.channelRepo.isActiveChannel(chat_id);
+    const isChannelActive = await this.channelRepo.isActiveChannel(normalizedChatId);
     if (!isChannelActive) {
       logger.debug(
-        { chat_id, chat_title },
+        { chat_id, normalizedChatId, chat_title },
         'Канал не в белом списке, сообщение пропущено'
       );
       return null;
     }
 
     // 2. Формирование unique_hash для дедупликации
-    const uniqueHash = `${chat_id}_${message_id}`;
+    const uniqueHash = `${normalizedChatId}_${message_id}`;
 
     // 3. Проверка на дубликат
     const isDuplicate = await this.messageRepo.exists(uniqueHash);
@@ -94,7 +108,7 @@ export class MessageProcessor {
     try {
       const savedMessage = await this.messageRepo.save({
         unique_hash: uniqueHash,
-        channel_id: chat_id,
+        channel_id: normalizedChatId,
         direction: signalData.direction,
         ticker: signalData.ticker,
         entry_price: signalData.entry_price,

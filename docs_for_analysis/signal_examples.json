@@ -1,0 +1,548 @@
+# Примеры стандартизированных сообщений
+
+## Пример 1: StrongSignal (SHORT)
+
+**Исходное сообщение:**
+```
+#BTCUSDT #StrongSignal
+BINANCE, 2026-2-27, T4:30:0 UTC
+
+**Ticker:** BTCUSDT,  **5 min
+**
+🔴🔴**↑ TREND Reversal ↓**  63%   **RSI:** 67
+⚠️Buying's risky – **potential** SHORT📕
+
+**Last price:** 67847.16
+```
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440001",
+  "timestamp": "2026-02-27T04:35:02Z",
+  "source": {
+    "channel": "VasyaBTC-Signals 🟢🔴",
+    "channel_id": 2678035223,
+    "sender_name": "VasyaBTC_Signals",
+    "message_id": 17677,
+    "message_date": "2026-02-27T04:35:02Z",
+    "original_text": "#BTCUSDT #StrongSignal\nBINANCE, 2026-2-27, T4:30:0 UTC\n\n**Ticker:** BTCUSDT,  **5 min\n**\n🔴🔴**↑ TREND Reversal ↓**  63%   **RSI:** 67\n⚠️Buying's risky – **potential** SHORT📕\n\n**Last price:** 67847.16",
+    "has_media": false,
+    "media": []
+  },
+  "signal": {
+    "type": "strong_signal",
+    "priority": 1,
+    "instrument": {
+      "ticker": "BTCUSDT",
+      "exchange": "BINANCE",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "timeframe": "5min",
+      "signal_time": "2026-02-27T04:30:00Z"
+    },
+    "direction": {
+      "side": "short",
+      "strength": "strong",
+      "pattern": "trend_reversal",
+      "pattern_strength": 63,
+      "pattern_direction": "down"
+    },
+    "indicators": {
+      "rsi": 67,
+      "rsi_signal": "overbought"
+    },
+    "confidence": {
+      "score": 85,
+      "factors": [
+        "RSI в зоне перекупленности (>65)",
+        "Сильный сигнал (двойной красный)",
+        "Паттерн разворота тренда подтверждён"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 12,
+    "language": "en",
+    "tags": ["reversal", "crypto", "binance", "strong"]
+  }
+}
+```
+
+---
+
+## Пример 2: MediumSignal с Entry/Targets/Stop
+
+**Исходное сообщение:**
+```
+#BNBUSDT
+🔴BINANCE, 2026-2-27, T7:0:0 UTC
+
+**Ticker:** BNBUSDT,  **1h
+✔️Binance Coin, Malta, Binance**
+
+**Entry:** 627.06
+**Targets:** 624.95 - 623.92
+**Stop:** **0.5%** - 630.2,  **1%** - 633.33
+
+**Expected profit:** 2.11 - 3.14
+0.34% - 0.5% to target
+```
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440002",
+  "timestamp": "2026-02-27T08:00:07Z",
+  "source": {
+    "channel": "VasyaBTC-Signals 🟢🔴",
+    "channel_id": 2678035223,
+    "sender_name": "VasyaBTC_Signals",
+    "message_id": 17686,
+    "message_date": "2026-02-27T08:00:07Z",
+    "original_text": "#BNBUSDT\n🔴BINANCE, 2026-2-27, T7:0:0 UTC\n\n**Ticker:** BNBUSDT,  **1h\n✔️Binance Coin, Malta, Binance**\n\n**Entry:** 627.06\n**Targets:** 624.95 - 623.92\n**Stop:** **0.5%** - 630.2,  **1%** - 633.33\n\n**Expected profit:** 2.11 - 3.14\n0.34% - 0.5% to target",
+    "has_media": true,
+    "media": [
+      {
+        "file_id": "5939297033263361655",
+        "file_type": "photo",
+        "file_name": "photo_17686"
+      }
+    ]
+  },
+  "signal": {
+    "type": "entry_signal",
+    "priority": 2,
+    "instrument": {
+      "ticker": "BNBUSDT",
+      "exchange": "BINANCE",
+      "project_info": "Binance Coin, Malta, Binance",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "timeframe": "1h",
+      "signal_time": "2026-02-27T07:00:00Z",
+      "expires_at": "2026-02-27T09:00:00Z"
+    },
+    "direction": {
+      "side": "short",
+      "strength": "medium",
+      "pattern": "ob_reversal",
+      "pattern_direction": "down"
+    },
+    "trade_setup": {
+      "entry_price": 627.06,
+      "current_price": 627.06,
+      "targets": [624.95, 623.92],
+      "stop_loss": {
+        "stop_0_5": 630.2,
+        "stop_1": 633.33
+      },
+      "expected_profit": "2.11 - 3.14",
+      "progress_to_target": "0.34% - 0.5%",
+      "risk_reward_ratio": 2.8
+    },
+    "confidence": {
+      "score": 72,
+      "factors": [
+        "Чёткие уровни входа и выхода",
+        "Указаны стоп-лоссы",
+        "Средняя сила сигнала"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 18,
+    "language": "en",
+    "tags": ["entry", "crypto", "binance", "short"]
+  }
+}
+```
+
+---
+
+## Пример 3: SENTIMENT
+
+**Исходное сообщение:**
+```
+#BTCUSDT #SENTIMENT
+BINANCE, 2026-2-26, T23:59:0 UTC
+
+**Ticker:** BTCUSDT  
+                  **Day** -0.7% / **24h** -0.7%
+
+→**🟩OS** 59%  /  49.6 - **5 min**
+→**🟥OB** 13%  /  50.3 - **15 min**
+▲**🟩OS** 1%  /  49.2 - **1h**
+→**🟥OB** 28%  /  55.6 - **4h**
+▲**🟥OB** 59%  /  51.5 - **12h**
+→**🟥OB** 21%  /  40.7 - **D**
+
+**Last price:** 67485.18
+```
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440003",
+  "timestamp": "2026-02-27T00:00:12Z",
+  "source": {
+    "channel": "VasyaBTC-Signals 🟢🔴",
+    "channel_id": 2678035223,
+    "sender_name": "VasyaBTC_Signals",
+    "message_id": 17673,
+    "message_date": "2026-02-27T00:00:12Z",
+    "original_text": "#BTCUSDT #SENTIMENT\nBINANCE, 2026-2-26, T23:59:0 UTC\n\n**Ticker:** BTCUSDT  \n                  **Day** -0.7% / **24h** -0.7%\n\n→**🟩OS** 59%  /  49.6 - **5 min**\n→**🟥OB** 13%  /  50.3 - **15 min**\n▲**🟩OS** 1%  /  49.2 - **1h**\n→**🟥OB** 28%  /  55.6 - **4h**\n▲**🟥OB** 59%  /  51.5 - **12h**\n→**🟥OB** 21%  /  40.7 - **D**\n\n**Last price:** 67485.18",
+    "has_media": false,
+    "media": []
+  },
+  "signal": {
+    "type": "sentiment",
+    "priority": 4,
+    "instrument": {
+      "ticker": "BTCUSDT",
+      "exchange": "BINANCE",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "timeframe": "1d",
+      "signal_time": "2026-02-26T23:59:00Z"
+    },
+    "direction": {
+      "side": "neutral",
+      "strength": "weak"
+    },
+    "indicators": {
+      "sentiment": {
+        "day_change": -0.7,
+        "change_24h": -0.7,
+        "timeframe_zones": [
+          {
+            "timeframe": "5min",
+            "zone": "OS",
+            "zone_percent": 59,
+            "rsi": 49.6,
+            "trend": "neutral"
+          },
+          {
+            "timeframe": "15min",
+            "zone": "OB",
+            "zone_percent": 13,
+            "rsi": 50.3,
+            "trend": "neutral"
+          },
+          {
+            "timeframe": "1h",
+            "zone": "OS",
+            "zone_percent": 1,
+            "rsi": 49.2,
+            "trend": "up"
+          },
+          {
+            "timeframe": "4h",
+            "zone": "OB",
+            "zone_percent": 28,
+            "rsi": 55.6,
+            "trend": "neutral"
+          },
+          {
+            "timeframe": "12h",
+            "zone": "OB",
+            "zone_percent": 59,
+            "rsi": 51.5,
+            "trend": "up"
+          },
+          {
+            "timeframe": "1d",
+            "zone": "OB",
+            "zone_percent": 21,
+            "rsi": 40.7,
+            "trend": "neutral"
+          }
+        ]
+      }
+    },
+    "confidence": {
+      "score": 60,
+      "factors": [
+        "Смешанные сигналы по таймфреймам",
+        "Преобладание OB зон на старших ТФ"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 22,
+    "language": "en",
+    "tags": ["sentiment", "crypto", "binance", "analysis"]
+  }
+}
+```
+
+---
+
+## Пример 4: Funding Rate Signal
+
+**Исходное сообщение:**
+```
+⚡️ **Сигнал по фандингу (BYBIT)**
+🔹 **Инструмент:** [NEWTUSDT](https://www.bybit.com/trade/usdt/NEWTUSDT)
+🕒 **Время:** 27.02.2026 13:00
+💰 **Ставка:** -0.6000%
+📈 Лонги получают
+🟢 Открывать ЛОНГ
+```
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440004",
+  "timestamp": "2026-02-27T10:58:55Z",
+  "source": {
+    "channel": "ASFunding_bot",
+    "channel_id": 8165168854,
+    "sender_name": "ASFunding",
+    "message_id": 280,
+    "message_date": "2026-02-27T10:58:55Z",
+    "original_text": "⚡️ **Сигнал по фандингу (BYBIT)**\n🔹 **Инструмент:** [NEWTUSDT](https://www.bybit.com/trade/usdt/NEWTUSDT)\n🕒 **Время:** 27.02.2026 13:00\n💰 **Ставка:** -0.6000%\n📈 Лонги получают\n🟢 Открывать ЛОНГ",
+    "has_media": false,
+    "media": []
+  },
+  "signal": {
+    "type": "funding_rate",
+    "priority": 3,
+    "instrument": {
+      "ticker": "NEWTUSDT",
+      "exchange": "BYBIT",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "signal_time": "2026-02-27T13:00:00Z"
+    },
+    "funding_info": {
+      "funding_rate": -0.6,
+      "funding_time": "2026-02-27T13:00:00Z",
+      "receiver": "longs",
+      "recommended_action": "long",
+      "trading_link": "https://www.bybit.com/trade/usdt/NEWTUSDT",
+      "next_funding_in": 7265
+    },
+    "confidence": {
+      "score": 90,
+      "factors": [
+        "Отрицательный фандинг (лонги получают)",
+        "Высокая ставка фандинга",
+        "Автоматический сигнал от бота"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 8,
+    "language": "ru",
+    "tags": ["funding", "crypto", "bybit", "long"]
+  }
+}
+```
+
+---
+
+## Пример 5: Quick Target (RU)
+
+**Исходное сообщение:**
+```
+2026-02-27T08:00:01Z, BINANCE 
+
+**Тикер:** ETHUSDT  
+
+**Таймфрейм:** 5 минут
+
+🟢 **НОВАЯ ЦЕЛЬ РОСТА** 🟢
+
+**Вход:** 2033 
+
+**Тейки:** 2034-2035 
+```
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440005",
+  "timestamp": "2026-02-27T08:00:07Z",
+  "source": {
+    "channel": "VasyaBTC-Signals 🟢🔴",
+    "channel_id": 2678035223,
+    "sender_name": "VasyaBTC_Signals",
+    "message_id": 17685,
+    "message_date": "2026-02-27T08:00:07Z",
+    "original_text": "2026-02-27T08:00:01Z, BINANCE \n \n**Тикер:** ETHUSDT  \n \n**Таймфрейм:** 5 минут\n \n🟢 **НОВАЯ ЦЕЛЬ РОСТА** 🟢\n \n**Вход:** 2033 \n \n**Тейки:** 2034-2035",
+    "has_media": true,
+    "media": [
+      {
+        "file_id": "5939297033263361655",
+        "file_type": "photo",
+        "file_name": "photo_17685"
+      }
+    ]
+  },
+  "signal": {
+    "type": "quick_target",
+    "priority": 2,
+    "instrument": {
+      "ticker": "ETHUSDT",
+      "exchange": "BINANCE",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "timeframe": "5min",
+      "signal_time": "2026-02-27T08:00:01Z",
+      "expires_at": "2026-02-27T08:30:01Z"
+    },
+    "direction": {
+      "side": "long",
+      "strength": "medium"
+    },
+    "trade_setup": {
+      "entry_price": 2033,
+      "current_price": 2033,
+      "targets": [2034, 2035],
+      "expected_profit": "1-2 пункта"
+    },
+    "confidence": {
+      "score": 65,
+      "factors": [
+        "Быстрый сигнал",
+        "Короткий таймфрейм",
+        "Малый потенциал прибыли"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 10,
+    "language": "ru",
+    "tags": ["quick_target", "crypto", "binance", "long"]
+  }
+}
+```
+
+---
+
+## Пример 6: Сообщение с предупреждениями
+
+**Исходное сообщение:** (неполное или с ошибками парсинга)
+
+**Стандартизированный JSON:**
+```json
+{
+  "signal_id": "550e8400-e29b-41d4-a716-446655440006",
+  "timestamp": "2026-02-27T11:00:08Z",
+  "source": {
+    "channel": "VasyaBTC-Signals 🟢🔴",
+    "channel_id": 2678035223,
+    "sender_name": "VasyaBTC_Signals",
+    "message_id": 17689,
+    "message_date": "2026-02-27T11:00:07Z",
+    "original_text": "#XRPUSDT #MediumSignal\nBINANCE, 2026-2-27, T10:0:0 UTC\n\n**Ticker:** XRPUSDT,  **1h\n✔️Ripple, USA, Ripple Labs**\n\n🔴**↑ OB Reversal ↓**  30.8%   **RSI:** 40\n⚠️Buying's risky – **potential** SHORT📕\n\n**Last price:** 1.3889",
+    "has_media": false,
+    "media": []
+  },
+  "signal": {
+    "type": "medium_signal",
+    "priority": 2,
+    "instrument": {
+      "ticker": "XRPUSDT",
+      "exchange": "BINANCE",
+      "project_info": "Ripple, USA, Ripple Labs",
+      "asset_type": "crypto"
+    },
+    "timing": {
+      "timeframe": "1h",
+      "signal_time": "2026-02-27T10:00:00Z"
+    },
+    "direction": {
+      "side": "short",
+      "strength": "medium",
+      "pattern": "ob_reversal",
+      "pattern_strength": 30.8,
+      "pattern_direction": "down"
+    },
+    "indicators": {
+      "rsi": 40,
+      "rsi_signal": "neutral"
+    },
+    "confidence": {
+      "score": 58,
+      "factors": [
+        "Низкая сила паттерна (<50%)",
+        "RSI в нейтральной зоне"
+      ]
+    }
+  },
+  "metadata": {
+    "parser_version": "1.0.0",
+    "processing_time_ms": 14,
+    "language": "en",
+    "tags": ["medium", "crypto", "binance", "short"],
+    "warnings": [
+      "Не указаны уровни entry/targets/stops",
+      "Низкая уверенность сигнала"
+    ]
+  }
+}
+```
+
+---
+
+## WebSocket сообщение (обёртка)
+
+Для отправки через WebSocket используется следующая обёртка:
+
+```json
+{
+  "type": "signal",
+  "action": "new_signal",
+  "payload": {
+    // Стандартизированный сигнал из примеров выше
+  },
+  "server_timestamp": "2026-02-27T11:00:08.500Z",
+  "connection_id": "conn_abc123"
+}
+```
+
+**Другие типы WebSocket сообщений:**
+
+```json
+// Подтверждение получения
+{
+  "type": "ack",
+  "signal_id": "550e8400-e29b-41d4-a716-446655440001",
+  "received_at": "2026-02-27T11:00:08.600Z"
+}
+
+// Обновление сигнала (например, прогресс до цели)
+{
+  "type": "signal",
+  "action": "update",
+  "payload": {
+    "signal_id": "550e8400-e29b-41d4-a716-446655440002",
+    "updates": {
+      "current_price": 625.50,
+      "progress_to_target": "45%"
+    }
+  }
+}
+
+// Истечение сигнала
+{
+  "type": "signal",
+  "action": "expired",
+  "payload": {
+    "signal_id": "550e8400-e29b-41d4-a716-446655440005",
+    "reason": "timeout"
+  }
+}
+```

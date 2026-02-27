@@ -41,10 +41,10 @@ export class AdminApi {
    * Создание сервисов для загрузки истории
    */
   private createHistoryServices() {
-    // Путь к SQLite базе Telegrab
-    const telegrabDbPath = process.env.TELEGRAB_DB_PATH || '/root/git/telegrab/data/telegrab_v6.db';
+    const telegrabWsUrl = process.env.TELEGRAB_WS_URL || '';
+    const telegrabApiKey = process.env.TELEGRAB_API_KEY || '';
     
-    const historyService = new TelegrabHistoryService(telegrabDbPath);
+    const historyService = new TelegrabHistoryService(telegrabWsUrl, telegrabApiKey);
 
     const parseSignal = createSignalParser();
     const messageProcessor = new MessageProcessor(
