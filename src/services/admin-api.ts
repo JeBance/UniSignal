@@ -82,6 +82,9 @@ export class AdminApi {
       res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
     });
 
+    // History load (до middleware, так как требует отдельной обработки)
+    this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
+
     // Admin endpoints (требуют аутентификации)
     this.app.use('/admin', this.adminAuthMiddleware.bind(this));
     
@@ -95,9 +98,6 @@ export class AdminApi {
     this.app.get('/admin/channels', this.getChannels.bind(this));
     this.app.delete('/admin/channels/:chatId', this.deleteChannel.bind(this));
     this.app.patch('/admin/channels/:chatId/toggle', this.toggleChannel.bind(this));
-    
-    // History load
-    this.app.post('/admin/history/load', this.loadHistory.bind(this));
 
     // Stats
     this.app.get('/admin/stats', this.getStats.bind(this));
