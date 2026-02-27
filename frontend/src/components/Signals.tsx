@@ -29,7 +29,7 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [filterHasEntry, setFilterHasEntry] = useState<boolean>(false);
   const [filterHasTargets, setFilterHasTargets] = useState<boolean>(false);
   const [filterHasStopLoss, setFilterHasStopLoss] = useState<boolean>(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+  const [showFiltersModal, setShowFiltersModal] = useState<boolean>(false);
 
   // Сортировка
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
@@ -330,8 +330,21 @@ export default function Signals({ adminKey }: SignalsProps) {
           <div>
             <strong>Последние сигналы</strong>{' '}
             <Badge bg="secondary">{filteredAndSortedSignals.length} / {signals.length}</Badge>
+            {(filterDirection !== 'ALL' || filterChannel !== 'ALL' || filterTicker || filterHasPrices || 
+              filterSignalType !== 'ALL' || filterExchange !== 'ALL' || filterTimeframe !== 'ALL' || 
+              filterMinConfidence > 0 || filterHasEntry || filterHasTargets || filterHasStopLoss) && (
+              <Badge bg="info" className="ms-2">🔽 Фильтры активны</Badge>
+            )}
           </div>
           <div>
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={() => setShowFiltersModal(true)}
+              className="me-2"
+            >
+              🗂️ Фильтры
+            </Button>
             <Button 
               variant="outline-secondary" 
               size="sm" 
@@ -346,236 +359,6 @@ export default function Signals({ adminKey }: SignalsProps) {
             </Button>
           </div>
         </Card.Header>
-        
-        {/* Фильтры */}
-        <div className="p-3 bg-light border-bottom">
-          {/* Кнопка переключения расширенных фильтров */}
-          <div className="mb-3">
-            <Button
-              variant="outline-primary"
-              size="sm"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              {showAdvancedFilters ? '🔼 Скрыть фильтры' : '🔽 Расширенные фильтры'}
-            </Button>
-            {(filterSignalType !== 'ALL' || filterExchange !== 'ALL' || filterTimeframe !== 'ALL' || 
-              filterMinConfidence > 0 || filterHasEntry || filterHasTargets || filterHasStopLoss) && (
-              <Badge bg="info" className="ms-2">Активны расширенные фильтры</Badge>
-            )}
-          </div>
-
-          {/* Базовые фильтры */}
-          <div className="row g-3">
-            <div className="col-md-3">
-              <Form.Group>
-                <Form.Label><strong>⬆️ Направление</strong></Form.Label>
-                <Form.Select
-                  value={filterDirection}
-                  onChange={(e) => setFilterDirection(e.target.value as 'ALL' | 'LONG' | 'SHORT')}
-                  size="sm"
-                >
-                  <option value="ALL">Все</option>
-                  <option value="LONG">LONG</option>
-                  <option value="SHORT">SHORT</option>
-                </Form.Select>
-              </Form.Group>
-            </div>
-
-            <div className="col-md-3">
-              <Form.Group>
-                <Form.Label><strong>📺 Канал</strong></Form.Label>
-                <Form.Select
-                  value={filterChannel}
-                  onChange={(e) => setFilterChannel(e.target.value)}
-                  size="sm"
-                >
-                  <option value="ALL">Все каналы</option>
-                  {uniqueChannels.map(channel => (
-                    <option key={channel} value={channel}>{channel}</option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </div>
-
-            <div className="col-md-3">
-              <Form.Group>
-                <Form.Label><strong>🏷️ Тикер</strong></Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Например: BTC"
-                  value={filterTicker}
-                  onChange={(e) => setFilterTicker(e.target.value)}
-                  size="sm"
-                />
-              </Form.Group>
-            </div>
-
-            <div className="col-md-3">
-              <Form.Group>
-                <Form.Label><strong>💰 Цены</strong></Form.Label>
-                <div className="d-flex align-items-center mt-2">
-                  <Form.Check
-                    type="checkbox"
-                    id="filterHasPrices"
-                    label="Только с ценами"
-                    checked={filterHasPrices}
-                    onChange={(e) => setFilterHasPrices(e.target.checked)}
-                  />
-                </div>
-              </Form.Group>
-            </div>
-          </div>
-
-          {/* Расширенные фильтры */}
-          {showAdvancedFilters && (
-            <div className="row g-3 mt-2 pt-3 border-top">
-              <div className="col-md-3">
-                <Form.Group>
-                  <Form.Label><strong>📊 Тип сигнала</strong></Form.Label>
-                  <Form.Select
-                    value={filterSignalType}
-                    onChange={(e) => setFilterSignalType(e.target.value)}
-                    size="sm"
-                  >
-                    <option value="ALL">Все типы</option>
-                    {uniqueSignalTypes.map(type => (
-                      <option key={type} value={type}>
-                        {type === 'strong_signal' && '🔴 Strong Signal'}
-                        {type === 'medium_signal' && '🟡 Medium Signal'}
-                        {type === 'entry_signal' && '📊 Entry Signal'}
-                        {type === 'quick_target' && '🎯 Quick Target'}
-                        {type === 'sentiment' && '📈 Sentiment'}
-                        {type === 'funding_rate' && '💰 Funding Rate'}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-3">
-                <Form.Group>
-                  <Form.Label><strong>🏦 Биржа</strong></Form.Label>
-                  <Form.Select
-                    value={filterExchange}
-                    onChange={(e) => setFilterExchange(e.target.value)}
-                    size="sm"
-                  >
-                    <option value="ALL">Все биржи</option>
-                    {uniqueExchanges.map(exchange => (
-                      <option key={exchange} value={exchange}>{exchange}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-3">
-                <Form.Group>
-                  <Form.Label><strong>⏱️ Таймфрейм</strong></Form.Label>
-                  <Form.Select
-                    value={filterTimeframe}
-                    onChange={(e) => setFilterTimeframe(e.target.value)}
-                    size="sm"
-                  >
-                    <option value="ALL">Все таймфреймы</option>
-                    {uniqueTimeframes.map(tf => (
-                      <option key={tf} value={tf}>{tf}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-3">
-                <Form.Group>
-                  <Form.Label><strong>🎯 Min Confidence: {filterMinConfidence}%</strong></Form.Label>
-                  <Form.Range
-                    min={0}
-                    max={100}
-                    step={10}
-                    value={filterMinConfidence}
-                    onChange={(e) => setFilterMinConfidence(Number(e.target.value))}
-                  />
-                  <div className="d-flex justify-content-between small text-muted">
-                    <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
-                  </div>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-4">
-                <Form.Group>
-                  <Form.Label><strong>📍 Вход</strong></Form.Label>
-                  <div className="d-flex align-items-center mt-2">
-                    <Form.Check
-                      type="checkbox"
-                      id="filterHasEntry"
-                      label="Только с ценой входа"
-                      checked={filterHasEntry}
-                      onChange={(e) => setFilterHasEntry(e.target.checked)}
-                    />
-                  </div>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-4">
-                <Form.Group>
-                  <Form.Label><strong>🎯 Цели</strong></Form.Label>
-                  <div className="d-flex align-items-center mt-2">
-                    <Form.Check
-                      type="checkbox"
-                      id="filterHasTargets"
-                      label="Только с целями"
-                      checked={filterHasTargets}
-                      onChange={(e) => setFilterHasTargets(e.target.checked)}
-                    />
-                  </div>
-                </Form.Group>
-              </div>
-
-              <div className="col-md-4">
-                <Form.Group>
-                  <Form.Label><strong>🛑 Стопы</strong></Form.Label>
-                  <div className="d-flex align-items-center mt-2">
-                    <Form.Check
-                      type="checkbox"
-                      id="filterHasStopLoss"
-                      label="Только со стоп-лоссом"
-                      checked={filterHasStopLoss}
-                      onChange={(e) => setFilterHasStopLoss(e.target.checked)}
-                    />
-                  </div>
-                </Form.Group>
-              </div>
-            </div>
-          )}
-          
-          {/* Кнопка сброса всех фильтров */}
-          {(filterDirection !== 'ALL' || filterChannel !== 'ALL' || filterTicker || filterHasPrices || 
-            filterSignalType !== 'ALL' || filterExchange !== 'ALL' || filterTimeframe !== 'ALL' || 
-            filterMinConfidence > 0 || filterHasEntry || filterHasTargets || filterHasStopLoss) && (
-            <div className="mt-3">
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={() => {
-                  setFilterDirection('ALL');
-                  setFilterChannel('ALL');
-                  setFilterTicker('');
-                  setFilterHasPrices(false);
-                  setFilterSignalType('ALL');
-                  setFilterExchange('ALL');
-                  setFilterTimeframe('ALL');
-                  setFilterMinConfidence(0);
-                  setFilterHasEntry(false);
-                  setFilterHasTargets(false);
-                  setFilterHasStopLoss(false);
-                }}
-              >
-                🔄 Сбросить все фильтры
-              </Button>
-            </div>
-          )}
-        </div>
 
         <Card.Body>
           {currentSignals.length === 0 && signals.length === 0 ? (
@@ -881,6 +664,209 @@ export default function Signals({ adminKey }: SignalsProps) {
         )}
       </Card.Body>
     </Card>
+
+    {/* Modal для фильтров */}
+    <Modal show={showFiltersModal} onHide={() => setShowFiltersModal(false)} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title>🗂️ Фильтры сигналов</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <h6 className="mb-3">📊 Базовые фильтры</h6>
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>⬆️ Направление</Form.Label>
+              <Form.Select
+                value={filterDirection}
+                onChange={(e) => setFilterDirection(e.target.value as 'ALL' | 'LONG' | 'SHORT')}
+              >
+                <option value="ALL">Все</option>
+                <option value="LONG">LONG</option>
+                <option value="SHORT">SHORT</option>
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>📺 Канал</Form.Label>
+              <Form.Select
+                value={filterChannel}
+                onChange={(e) => setFilterChannel(e.target.value)}
+              >
+                <option value="ALL">Все каналы</option>
+                {uniqueChannels.map(channel => (
+                  <option key={channel} value={channel}>{channel}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>🏷️ Тикер</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Например: BTC"
+                value={filterTicker}
+                onChange={(e) => setFilterTicker(e.target.value)}
+              />
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label className="d-block">💰 Цены</Form.Label>
+              <Form.Check
+                type="checkbox"
+                id="filterHasPricesModal"
+                label="Только с ценами"
+                checked={filterHasPrices}
+                onChange={(e) => setFilterHasPrices(e.target.checked)}
+              />
+            </Form.Group>
+          </div>
+        </div>
+
+        <h6 className="mb-3">🔬 Расширенные фильтры</h6>
+        <div className="row g-3">
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>📊 Тип сигнала</Form.Label>
+              <Form.Select
+                value={filterSignalType}
+                onChange={(e) => setFilterSignalType(e.target.value)}
+              >
+                <option value="ALL">Все типы</option>
+                {uniqueSignalTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type === 'strong_signal' && '🔴 Strong Signal'}
+                    {type === 'medium_signal' && '🟡 Medium Signal'}
+                    {type === 'entry_signal' && '📊 Entry Signal'}
+                    {type === 'quick_target' && '🎯 Quick Target'}
+                    {type === 'sentiment' && '📈 Sentiment'}
+                    {type === 'funding_rate' && '💰 Funding Rate'}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>🏦 Биржа</Form.Label>
+              <Form.Select
+                value={filterExchange}
+                onChange={(e) => setFilterExchange(e.target.value)}
+              >
+                <option value="ALL">Все биржи</option>
+                {uniqueExchanges.map(exchange => (
+                  <option key={exchange} value={exchange}>{exchange}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>⏱️ Таймфрейм</Form.Label>
+              <Form.Select
+                value={filterTimeframe}
+                onChange={(e) => setFilterTimeframe(e.target.value)}
+              >
+                <option value="ALL">Все таймфреймы</option>
+                {uniqueTimeframes.map(tf => (
+                  <option key={tf} value={tf}>{tf}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-6">
+            <Form.Group>
+              <Form.Label>🎯 Min Confidence: {filterMinConfidence}%</Form.Label>
+              <Form.Range
+                min={0}
+                max={100}
+                step={10}
+                value={filterMinConfidence}
+                onChange={(e) => setFilterMinConfidence(Number(e.target.value))}
+              />
+              <div className="d-flex justify-content-between small text-muted">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+            </Form.Group>
+          </div>
+
+          <div className="col-md-4">
+            <Form.Group>
+              <Form.Label className="d-block">📍 Вход</Form.Label>
+              <Form.Check
+                type="checkbox"
+                id="filterHasEntryModal"
+                label="Только с ценой входа"
+                checked={filterHasEntry}
+                onChange={(e) => setFilterHasEntry(e.target.checked)}
+              />
+            </Form.Group>
+          </div>
+
+          <div className="col-md-4">
+            <Form.Group>
+              <Form.Label className="d-block">🎯 Цели</Form.Label>
+              <Form.Check
+                type="checkbox"
+                id="filterHasTargetsModal"
+                label="Только с целями"
+                checked={filterHasTargets}
+                onChange={(e) => setFilterHasTargets(e.target.checked)}
+              />
+            </Form.Group>
+          </div>
+
+          <div className="col-md-4">
+            <Form.Group>
+              <Form.Label className="d-block">🛑 Стопы</Form.Label>
+              <Form.Check
+                type="checkbox"
+                id="filterHasStopLossModal"
+                label="Только со стоп-лоссом"
+                checked={filterHasStopLoss}
+                onChange={(e) => setFilterHasStopLoss(e.target.checked)}
+              />
+            </Form.Group>
+          </div>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="outline-danger"
+          onClick={() => {
+            setFilterDirection('ALL');
+            setFilterChannel('ALL');
+            setFilterTicker('');
+            setFilterHasPrices(false);
+            setFilterSignalType('ALL');
+            setFilterExchange('ALL');
+            setFilterTimeframe('ALL');
+            setFilterMinConfidence(0);
+            setFilterHasEntry(false);
+            setFilterHasTargets(false);
+            setFilterHasStopLoss(false);
+          }}
+        >
+          🔄 Сбросить все
+        </Button>
+        <Button variant="secondary" onClick={() => setShowFiltersModal(false)}>
+          Закрыть
+        </Button>
+        <Button variant="primary" onClick={() => setShowFiltersModal(false)}>
+          Применить
+        </Button>
+      </Modal.Footer>
+    </Modal>
 
       {/* Modal для просмотра полных данных */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
