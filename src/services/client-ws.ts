@@ -3,6 +3,7 @@ import { IncomingMessage, Server } from 'http';
 import { logger } from '../utils/logger';
 import { ClientRepository } from '../db/repositories/client-repository';
 import { ProcessedMessage } from './message-processor';
+import { TradingSignal } from './signal-parser';
 
 export interface ClientWsConfig {
   httpServer: Server;
@@ -200,7 +201,7 @@ export class ClientWsServer {
   public broadcast(message: ProcessedMessage): void {
     // Добавляем в очередь
     this.messageQueue.push(message);
-    
+
     // Ограничиваем размер очереди
     if (this.messageQueue.length > this.maxQueueSize) {
       this.messageQueue.shift();
@@ -217,6 +218,33 @@ export class ClientWsServer {
     logger.debug(
       { sentCount, totalClients: this.connections.size },
       '📤 Сообщение отправлено клиентам'
+    );
+  }
+
+  /**
+   * Отправка распарсенного сигнала клиентам
+   */
+  public broadcastSignal(signal: TradingSignal): void {
+    let sentCount = 0;
+    this.connections.forEach((connection, ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify({
+            type: 'signal',
+            action: 'new_signal',
+            payload: signal,
+            server_timestamp: new Date().toISOString(),
+          }));
+          sentCount++;
+        } catch (err) {
+          logger.error({ err }, 'Ошибка отправки сигнала клиенту');
+        }
+      }
+    });
+
+    logger.debug(
+      { sentCount, totalClients: this.connections.size, signalType: signal.signal.type },
+      '📤 Сигнал отправлен клиентам'
     );
   }
 

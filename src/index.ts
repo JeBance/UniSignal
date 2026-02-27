@@ -5,10 +5,10 @@ import { TelegrabWsClient, TelegrabEvent } from './services/telegrab-ws';
 import { ChannelRepository } from './db/repositories/channel-repository';
 import { MessageRepository } from './db/repositories/message-repository';
 import { MessageProcessor } from './services/message-processor';
-import { createSignalParser } from './services/parser';
 import { AdminApi } from './services/admin-api';
 import { ClientWsServer } from './services/client-ws';
 import { ClientRepository } from './db/repositories/client-repository';
+import { TradingSignal } from './services/signal-parser';
 
 // Загрузка переменных окружения
 config();
@@ -40,15 +40,18 @@ async function main() {
   const clientRepo = new ClientRepository();
   
   // Создание парсера сигналов
-  const parseSignal = createSignalParser();
-
   const messageProcessor = new MessageProcessor(channelRepo, messageRepo, {
-    parseSignal,
     broadcastToClients: true, // Транслировать новые сообщения
     onMessageProcessed: (processed) => {
       // Трансляция клиентам через WebSocket
       if (clientWsServer) {
         clientWsServer.broadcast(processed);
+      }
+    },
+    onSignalParsed: (signal: TradingSignal) => {
+      // Отправка распарсенного сигнала клиентам
+      if (clientWsServer) {
+        clientWsServer.broadcastSignal(signal);
       }
     },
   });
@@ -65,18 +68,18 @@ async function main() {
   // Обработчик событий от Telegrab
   const handleTelegrabEvent = async (event: TelegrabEvent) => {
     logger.info({ type: event.type }, '📨 Событие от Telegrab');
-    
+
     if (event.type === 'new_message' && event.message) {
       const msg = event.message;
       logger.info(
-        { 
-          chat_id: msg.chat_id, 
+        {
+          chat_id: msg.chat_id,
           chat_title: msg.chat_title,
           message_id: msg.message_id,
         },
         `Новое сообщение: "${msg.text.substring(0, 50)}${msg.text.length > 50 ? '...' : ''}"`
       );
-      
+
       // Обработка сообщения: фильтрация, нормализация, сохранение
       const processed = await messageProcessor.processMessage(msg);
 
@@ -90,6 +93,7 @@ async function main() {
             entryPrice: processed.entry_price,
             stopLoss: processed.stop_loss,
             takeProfit: processed.take_profit,
+            signalType: processed.parsedSignal?.signal.type,
           },
           '✅ Сообщение обработано'
         );

@@ -2,6 +2,7 @@ import { ChannelRepository } from '../db/repositories/channel-repository';
 import { MessageRepository } from '../db/repositories/message-repository';
 import { MessageBuffer } from './buffer';
 import { TelegrabMessage } from './telegrab-ws';
+import { SignalParser, TradingSignal, RawMessage } from './signal-parser';
 import { logger } from '../utils/logger';
 
 export interface ProcessedMessage {
@@ -16,20 +17,13 @@ export interface ProcessedMessage {
   take_profit: number | null;
   content_text: string;
   original_timestamp: Date;
+  parsedSignal?: TradingSignal | null;
 }
 
 export interface MessageProcessorConfig {
-  parseSignal?: (text: string) => SignalData;
   broadcastToClients?: boolean; // Транслировать ли сообщения клиентам
   onMessageProcessed?: (message: ProcessedMessage) => void; // Callback для новых сообщений
-}
-
-export interface SignalData {
-  direction: 'LONG' | 'SHORT' | null;
-  ticker: string | null;
-  entry_price: number | null;
-  stop_loss: number | null;
-  take_profit: number | null;
+  onSignalParsed?: (signal: TradingSignal) => void; // Callback для распарсенных сигналов
 }
 
 /**
@@ -41,6 +35,7 @@ export class MessageProcessor {
   private messageRepo: MessageRepository;
   private buffer: MessageBuffer;
   private config: MessageProcessorConfig;
+  private signalParser: SignalParser;
 
   constructor(
     channelRepo: ChannelRepository,
@@ -51,6 +46,7 @@ export class MessageProcessor {
     this.messageRepo = messageRepo;
     this.buffer = new MessageBuffer();
     this.config = config;
+    this.signalParser = new SignalParser();
   }
 
   /**
@@ -63,7 +59,7 @@ export class MessageProcessor {
     // -100xxxxxxxxx для супергрупп (каналы)
     // Telegrab может возвращать положительные ID без -100 префикса
     let normalizedChatId = chat_id;
-    
+
     if (chat_id > 0) {
       // Положительный ID - добавляем -100 префикс для супергрупп
       normalizedChatId = -1000000000000 - chat_id;
@@ -93,27 +89,30 @@ export class MessageProcessor {
       return null;
     }
 
-    // 4. Нормализация (парсинг сигнала)
-    const signalData = this.config.parseSignal
-      ? this.config.parseSignal(text)
-      : {
-          direction: null,
-          ticker: null,
-          entry_price: null,
-          stop_loss: null,
-          take_profit: null,
-        };
+    // 4. Парсинг сигнала новым парсером
+    const rawMessage: RawMessage = {
+      message_id,
+      chat_id: normalizedChatId,
+      chat_title,
+      text,
+      sender_name: message.sender_name || undefined,
+      message_date,
+      has_media: message.has_media || false,
+      files: message.files || [],
+    };
+
+    const parsedSignal = this.signalParser.parse(rawMessage);
 
     // 5. Сохранение в БД
     try {
       const savedMessage = await this.messageRepo.save({
         unique_hash: uniqueHash,
         channel_id: normalizedChatId,
-        direction: signalData.direction,
-        ticker: signalData.ticker,
-        entry_price: signalData.entry_price,
-        stop_loss: signalData.stop_loss,
-        take_profit: signalData.take_profit,
+        direction: parsedSignal?.signal.direction?.side?.toUpperCase() || null,
+        ticker: parsedSignal?.signal.instrument.ticker || null,
+        entry_price: parsedSignal?.signal.trade_setup?.entry_price || null,
+        stop_loss: parsedSignal?.signal.trade_setup?.stop_loss?.stop_0_5 || null,
+        take_profit: parsedSignal?.signal.trade_setup?.targets?.[0] || null,
         content_text: text,
         original_timestamp: new Date(message_date),
       });
@@ -128,8 +127,9 @@ export class MessageProcessor {
         {
           id: savedMessage.id,
           channel: chat_title,
-          ticker: signalData.ticker,
-          direction: signalData.direction,
+          ticker: parsedSignal?.signal.instrument.ticker,
+          direction: parsedSignal?.signal.direction?.side,
+          signal_type: parsedSignal?.signal.type,
         },
         '✅ Сообщение сохранено'
       );
@@ -152,7 +152,13 @@ export class MessageProcessor {
           : null,
         content_text: savedMessage.content_text,
         original_timestamp: savedMessage.original_timestamp,
+        parsedSignal,
       };
+
+      // Отправляем распарсенный сигнал через callback
+      if (parsedSignal && this.config.onSignalParsed) {
+        this.config.onSignalParsed(parsedSignal);
+      }
 
       // Транслируем клиентам только если включено
       if (this.config.broadcastToClients !== false && this.config.onMessageProcessed) {
@@ -163,10 +169,10 @@ export class MessageProcessor {
     } catch (err: unknown) {
       // Ошибка БД - буферизуем сообщение
       logger.error({ err, message }, 'Ошибка сохранения, добавляем в буфер');
-      
+
       this.buffer.add({
         message,
-        signalData,
+        parsedSignal,
         uniqueHash,
       });
 
@@ -192,9 +198,9 @@ export class MessageProcessor {
       const messages = this.buffer.getAll();
 
       for (const item of messages) {
-        const { message, signalData, uniqueHash } = item.data as {
+        const { message, parsedSignal, uniqueHash } = item.data as {
           message: TelegrabMessage;
-          signalData: SignalData;
+          parsedSignal: TradingSignal | null;
           uniqueHash: string;
         };
 
@@ -202,11 +208,11 @@ export class MessageProcessor {
           const savedMessage = await this.messageRepo.save({
             unique_hash: uniqueHash,
             channel_id: message.chat_id,
-            direction: signalData.direction,
-            ticker: signalData.ticker,
-            entry_price: signalData.entry_price,
-            stop_loss: signalData.stop_loss,
-            take_profit: signalData.take_profit,
+            direction: parsedSignal?.signal.direction?.side?.toUpperCase() || null,
+            ticker: parsedSignal?.signal.instrument.ticker || null,
+            entry_price: parsedSignal?.signal.trade_setup?.entry_price || null,
+            stop_loss: parsedSignal?.signal.trade_setup?.stop_loss?.stop_0_5 || null,
+            take_profit: parsedSignal?.signal.trade_setup?.targets?.[0] || null,
             content_text: message.text,
             original_timestamp: new Date(message.message_date),
           });

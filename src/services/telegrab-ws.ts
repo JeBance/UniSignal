@@ -8,6 +8,13 @@ export interface TelegrabMessage {
   text: string;
   sender_name: string | null;
   message_date: string;
+  has_media?: boolean;
+  files?: Array<{
+    file_id: string;
+    file_type: string;
+    file_name?: string;
+    file_size?: number;
+  }>;
 }
 
 export interface TelegrabEvent {

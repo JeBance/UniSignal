@@ -8,7 +8,6 @@ import { MessageRepository } from '../db/repositories/message-repository';
 import { checkDatabaseConnection, getPool } from '../db/connection';
 import { TelegrabHistoryService } from './telegrab-history';
 import { MessageProcessor } from './message-processor';
-import { createSignalParser } from './parser';
 
 export interface AdminApiConfig {
   adminMasterKey: string;
@@ -43,14 +42,13 @@ export class AdminApi {
   private createHistoryServices() {
     const telegrabWsUrl = process.env.TELEGRAB_WS_URL || '';
     const telegrabApiKey = process.env.TELEGRAB_API_KEY || '';
-    
+
     const historyService = new TelegrabHistoryService(telegrabWsUrl, telegrabApiKey);
 
-    const parseSignal = createSignalParser();
     const messageProcessor = new MessageProcessor(
       this.channelRepo,
       this.messageRepo,
-      { parseSignal, broadcastToClients: false } // Не транслировать клиентам
+      { broadcastToClients: false } // Не транслировать клиентам
     );
 
     return { historyService, messageProcessor };
@@ -84,7 +82,6 @@ export class AdminApi {
 
     // Admin endpoints (требуют аутентификации)
     this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
-    this.app.post('/admin/history/status', this.adminAuthMiddleware.bind(this), this.getHistoryStatus.bind(this));
     this.app.delete('/admin/history/:chatId', this.adminAuthMiddleware.bind(this), this.clearHistory.bind(this));
     this.app.get('/admin/signals', this.adminAuthMiddleware.bind(this), this.getSignals.bind(this));
     this.app.post('/admin/clients', this.adminAuthMiddleware.bind(this), this.createClient.bind(this));
