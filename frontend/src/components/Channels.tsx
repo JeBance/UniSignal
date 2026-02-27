@@ -15,6 +15,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
   const [error, setError] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState<number | null>(null);
   const [historyProgress, setHistoryProgress] = useState<{loaded: number, saved: number, duplicates?: number} | null>(null);
+  const [clearingHistory, setClearingHistory] = useState<number | null>(null);
 
   useEffect(() => {
     if (!adminKey) {
@@ -85,7 +86,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
           'Content-Type': 'application/json',
           'X-Admin-Key': adminKey,
         },
-        body: JSON.stringify({ chat_id: chatId }), // Без limit - загружаются ВСЕ сообщения
+        body: JSON.stringify({ chat_id: chatId }),
       });
 
       const result = await response.json();
@@ -104,6 +105,38 @@ export default function Channels({ adminKey }: ChannelsProps) {
       setError('Ошибка загрузки истории');
     } finally {
       setLoadingHistory(null);
+    }
+  };
+
+  const handleClearHistory = async (channel: Channel) => {
+    if (!confirm(`Вы уверены, что хотите удалить ВСЮ историю сообщений канала "${channel.name}"?\n\nЭто действие нельзя отменить!`)) {
+      return;
+    }
+
+    setClearingHistory(channel.chat_id);
+
+    try {
+      const response = await fetch(`/admin/history/${channel.chat_id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Admin-Key': adminKey,
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Удалено ${result.deleted} сообщений из канала "${channel.name}"`);
+        // Обновляем статистику на Dashboard
+        window.location.href = '/ui/#/dashboard';
+        setTimeout(() => { window.location.href = '/ui/#/channels'; }, 1000);
+      } else {
+        setError(result.error || 'Ошибка очистки истории');
+      }
+    } catch (err) {
+      setError('Ошибка очистки истории');
+    } finally {
+      setClearingHistory(null);
     }
   };
 
@@ -216,6 +249,20 @@ export default function Channels({ adminKey }: ChannelsProps) {
                           <><Spinner as="span" animation="border" size="sm" className="me-1" />Загрузка...</>
                         ) : (
                           '📥 История'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="ms-2"
+                        onClick={() => handleClearHistory(channel)}
+                        disabled={clearingHistory === channel.chat_id}
+                        title="Удалить всю историю сообщений канала"
+                      >
+                        {clearingHistory === channel.chat_id ? (
+                          <><Spinner as="span" animation="border" size="sm" className="me-1" />Удаление...</>
+                        ) : (
+                          '🗑️ Очистить'
                         )}
                       </Button>
                     </td>

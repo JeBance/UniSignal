@@ -24,7 +24,7 @@ export class TelegrabHistoryService {
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
     const { chatId, limit } = options;
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       logger.info({ 
         dbPath: this.dbPath, 
         chatId, 
@@ -64,7 +64,7 @@ export class TelegrabHistoryService {
             return;
           }
 
-          const messages: TelegrabMessage[] = rows.map((row: any) => {
+          const messages: TelegrabMessage[] = rows.map((row: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             try {
               const rawData = JSON.parse(row.raw_data);
               return {

@@ -84,6 +84,7 @@ export class AdminApi {
 
     // Admin endpoints (требуют аутентификации)
     this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
+    this.app.delete('/admin/history/:chatId', this.adminAuthMiddleware.bind(this), this.clearHistory.bind(this));
     this.app.get('/admin/signals', this.adminAuthMiddleware.bind(this), this.getSignals.bind(this));
     this.app.post('/admin/clients', this.adminAuthMiddleware.bind(this), this.createClient.bind(this));
     this.app.get('/admin/clients', this.adminAuthMiddleware.bind(this), this.getClients.bind(this));
@@ -417,6 +418,39 @@ export class AdminApi {
   }
 
   /**
+   * DELETE /admin/history/:chatId - Очистка истории канала
+   */
+  private async clearHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const { chatId } = req.params;
+      
+      if (!chatId) {
+        res.status(400).json({ error: 'chatId is required' });
+        return;
+      }
+
+      logger.info({ chatId }, 'Очистка истории канала');
+
+      const pool = getPool();
+      const result = await pool.query(
+        'DELETE FROM messages WHERE channel_id = $1',
+        [parseInt(chatId)]
+      );
+
+      const deletedCount = result.rowCount || 0;
+      logger.info({ chatId, deleted: deletedCount }, 'История канала очищена');
+
+      res.json({
+        success: true,
+        deleted: deletedCount,
+      });
+    } catch (err: unknown) {
+      logger.error({ err }, 'Ошибка очистки истории');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
    * GET /admin/signals - Получение последних сигналов
    */
   private async getSignals(req: Request, res: Response): Promise<void> {
@@ -433,7 +467,7 @@ export class AdminApi {
         LIMIT $1
       `, [limit]);
       
-      const signals = result.rows.map((row: any) => ({
+      const signals = result.rows.map((row: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
         id: row.id,
         channel: row.channel_name || 'Unknown',
         direction: row.direction,
