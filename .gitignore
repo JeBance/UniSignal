@@ -6,6 +6,7 @@ node_modules/
 # Build
 dist/
 build/
+frontend/dist/
 
 # Environment
 .env
@@ -41,3 +42,6 @@ docker-compose.override.yml
 # Scripts
 scripts/migrate.sh
 scripts/migrate.cmd
+
+# Frontend
+frontend/node_modules/
