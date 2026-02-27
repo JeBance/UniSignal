@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { Server } from 'http';
+import path from 'path';
 import { logger } from '../utils/logger';
 import { ClientRepository } from '../db/repositories/client-repository';
 import { ChannelRepository } from '../db/repositories/channel-repository';
@@ -52,6 +53,12 @@ export class AdminApi {
   private setupRoutes(): void {
     // Public endpoints
     this.app.get('/health', this.healthCheck.bind(this));
+
+    // UI - статические файлы frontend
+    this.app.use('/ui', express.static(path.join(__dirname, '../../frontend/dist')));
+    this.app.get('/ui/*', (_req: Request, res: Response) => {
+      res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+    });
 
     // Admin endpoints (требуют аутентификации)
     this.app.use('/admin', this.adminAuthMiddleware.bind(this));

@@ -9,7 +9,12 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
+# Build frontend
+WORKDIR /app/frontend
+RUN npm ci && npm run build
+
 # Build TypeScript
+WORKDIR /app
 RUN npm run build
 
 # Expose port
