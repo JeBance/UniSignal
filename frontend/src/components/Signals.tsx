@@ -228,7 +228,7 @@ export default function Signals({ adminKey }: SignalsProps) {
               <tbody>
                 {signals.map((signal) => (
                   <tr key={signal.id}>
-                    <td className="align-top">
+                    <td className="align-top" style={{ textAlign: 'left' }}>
                       <Button
                         variant="link"
                         size="sm"
@@ -237,13 +237,19 @@ export default function Signals({ adminKey }: SignalsProps) {
                           setSelectedSignal(signal);
                           setShowModal(true);
                         }}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                       >
                         <pre className="mb-0 small" style={{ 
                           fontSize: '11px', 
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
                           maxHeight: '150px',
-                          overflow: 'auto'
+                          overflow: 'auto',
+                          backgroundColor: '#1a1a1a',
+                          color: '#ffffff',
+                          padding: '8px',
+                          borderRadius: '4px',
+                          textAlign: 'left'
                         }}>
                           {JSON.stringify({
                             id: signal.id,
@@ -254,10 +260,14 @@ export default function Signals({ adminKey }: SignalsProps) {
                         </pre>
                       </Button>
                     </td>
-                    <td className="align-top">
+                    <td className="align-top" style={{ textAlign: 'left' }}>
                       <pre className="mb-0 small" style={{ 
                         fontSize: '11px',
-                        color: signal.direction ? '#28a745' : '#6c757d'
+                        backgroundColor: '#1a1a1a',
+                        color: signal.direction ? '#4ade80' : '#9ca3af',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        textAlign: 'left'
                       }}>
                         {JSON.stringify({
                           direction: signal.direction || null,
