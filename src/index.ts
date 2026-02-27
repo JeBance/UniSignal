@@ -129,7 +129,7 @@ async function main() {
     {
       httpServer,
       path: '/ws',
-      authTimeout: 5000,
+      authTimeout: 30000, // 30 секунд на аутентификацию
     },
     clientRepo
   );

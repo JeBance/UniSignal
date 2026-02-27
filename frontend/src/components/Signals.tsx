@@ -61,16 +61,15 @@ export default function Signals({ adminKey }: SignalsProps) {
   };
 
   useEffect(() => {
-    if (selectedClient && adminKey) {
+    if (selectedClient && adminKey && !wsConnected) {
       connectWebSocket(selectedClient);
     }
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      // Не закрываем соединение при размонтировании компонента
+      // чтобы сохранить подключение при навигации
     };
-  }, [selectedClient]);
+  }, [selectedClient, adminKey]);
 
   const connectWebSocket = (apiKey: string) => {
     if (wsRef.current) {
@@ -82,6 +81,7 @@ export default function Signals({ adminKey }: SignalsProps) {
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log('WebSocket connected');
         setWsConnected(true);
         setError(null);
       };
@@ -89,22 +89,37 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log('WebSocket message:', message);
 
           if (message.status === 'authenticated') {
-            console.log('WebSocket authenticated');
+            console.log('✅ WebSocket authenticated');
           } else if (message.type === 'signal') {
-            setSignals((prev) => [message.data, ...prev].slice(0, 50)); // Храним последние 50
+            setSignals((prev) => {
+              // Проверяем, нет ли уже такого сигнала
+              const exists = prev.some(s => s.id === message.data.id);
+              if (exists) return prev;
+              return [message.data, ...prev].slice(0, 50);
+            });
           }
         } catch (err) {
           console.error('Error parsing message:', err);
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         setWsConnected(false);
+        // Автоматическое переподключение через 5 секунд
+        setTimeout(() => {
+          if (selectedClient && adminKey) {
+            console.log('Reconnecting...');
+            connectWebSocket(selectedClient);
+          }
+        }, 5000);
       };
 
-      ws.onerror = () => {
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
         setError('Ошибка WebSocket соединения');
       };
     } catch (err) {
