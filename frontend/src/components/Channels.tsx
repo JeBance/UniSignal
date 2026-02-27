@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Table, Spinner, Alert, Modal, Form, Badge } from 'react-bootstrap';
+import { Card, Button, Table, Spinner, Alert, Modal, Form, Badge, ProgressBar } from 'react-bootstrap';
 import { unisignalApi, type Channel } from '../api/unisignal';
 
 interface ChannelsProps {
@@ -13,6 +13,8 @@ export default function Channels({ adminKey }: ChannelsProps) {
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState<number | null>(null);
+  const [historyProgress, setHistoryProgress] = useState<{loaded: number, saved: number} | null>(null);
 
   useEffect(() => {
     if (!adminKey) {
@@ -71,6 +73,36 @@ export default function Channels({ adminKey }: ChannelsProps) {
     }
   };
 
+  const handleLoadHistory = async (chatId: number) => {
+    setLoadingHistory(chatId);
+    setHistoryProgress(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/admin/history/load', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': adminKey,
+        },
+        body: JSON.stringify({ chat_id: chatId, limit: 100 }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setHistoryProgress({ loaded: result.loaded, saved: result.saved });
+        setTimeout(() => setHistoryProgress(null), 5000);
+      } else {
+        setError(result.error || 'Ошибка загрузки истории');
+      }
+    } catch (err) {
+      setError('Ошибка загрузки истории');
+    } finally {
+      setLoadingHistory(null);
+    }
+  };
+
   if (!adminKey) {
     return (
       <Alert variant="info">Введите ADMIN_MASTER_KEY для управления каналами</Alert>
@@ -95,6 +127,17 @@ export default function Channels({ adminKey }: ChannelsProps) {
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
+
+      {historyProgress && (
+        <Alert variant="success">
+          <Alert.Heading>✅ История загружена</Alert.Heading>
+          <p>
+            Загружено: <strong>{historyProgress.loaded}</strong> сообщений<br />
+            Сохранено: <strong>{historyProgress.saved}</strong> сообщений (остальные - дубликаты)
+          </p>
+          <ProgressBar now={100} label="Готово" variant="success" className="mt-2" />
+        </Alert>
+      )}
 
       <Alert variant="info">
         <Alert.Heading>ℹ️ Белый список каналов</Alert.Heading>
@@ -151,6 +194,19 @@ export default function Channels({ adminKey }: ChannelsProps) {
                         onClick={() => handleDeleteChannel(channel.chat_id)}
                       >
                         Удалить
+                      </Button>
+                      <Button
+                        variant="info"
+                        size="sm"
+                        className="ms-2"
+                        onClick={() => handleLoadHistory(channel.chat_id)}
+                        disabled={loadingHistory === channel.chat_id}
+                      >
+                        {loadingHistory === channel.chat_id ? (
+                          <><Spinner as="span" animation="border" size="sm" className="me-1" />Загрузка...</>
+                        ) : (
+                          '📥 История'
+                        )}
                       </Button>
                     </td>
                   </tr>

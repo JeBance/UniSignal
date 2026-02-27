@@ -6,6 +6,9 @@ import { ClientRepository } from '../db/repositories/client-repository';
 import { ChannelRepository } from '../db/repositories/channel-repository';
 import { MessageRepository } from '../db/repositories/message-repository';
 import { checkDatabaseConnection } from '../db/connection';
+import { TelegrabHistoryService } from './telegrab-history';
+import { MessageProcessor } from './message-processor';
+import { createSignalParser } from './parser';
 
 export interface AdminApiConfig {
   adminMasterKey: string;
@@ -32,6 +35,25 @@ export class AdminApi {
 
     this.setupMiddleware();
     this.setupRoutes();
+  }
+
+  /**
+   * Создание сервисов для загрузки истории
+   */
+  private createHistoryServices() {
+    const telegrabWsUrl = process.env.TELEGRAB_WS_URL || '';
+    const telegrabApiKey = process.env.TELEGRAB_API_KEY || '';
+
+    const historyService = new TelegrabHistoryService(telegrabWsUrl, telegrabApiKey);
+
+    const parseSignal = createSignalParser();
+    const messageProcessor = new MessageProcessor(
+      this.channelRepo,
+      this.messageRepo,
+      { parseSignal }
+    );
+
+    return { historyService, messageProcessor };
   }
 
   /**
@@ -73,6 +95,9 @@ export class AdminApi {
     this.app.get('/admin/channels', this.getChannels.bind(this));
     this.app.delete('/admin/channels/:chatId', this.deleteChannel.bind(this));
     this.app.patch('/admin/channels/:chatId/toggle', this.toggleChannel.bind(this));
+    
+    // History load
+    this.app.post('/admin/history/load', this.loadHistory.bind(this));
 
     // Stats
     this.app.get('/admin/stats', this.getStats.bind(this));
@@ -325,6 +350,56 @@ export class AdminApi {
       });
     } catch (err) {
       logger.error({ err }, 'Ошибка получения статистики');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * POST /admin/history/load - Загрузка истории из Telegrab
+   */
+  private async loadHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const { chat_id, limit = 100 } = req.body;
+
+      if (!chat_id) {
+        res.status(400).json({ error: 'chat_id is required' });
+        return;
+      }
+
+      logger.info({ chat_id, limit }, 'Начало загрузки истории');
+
+      const { historyService, messageProcessor } = this.createHistoryServices();
+
+      // Загрузка истории
+      const messages = await historyService.loadChannelHistory(chat_id, limit);
+
+      if (messages.length === 0) {
+        res.json({
+          success: true,
+          loaded: 0,
+          message: 'История пуста или недоступна',
+        });
+        return;
+      }
+
+      // Обработка и сохранение сообщений
+      let savedCount = 0;
+      for (const msg of messages) {
+        const processed = await messageProcessor.processMessage(msg);
+        if (processed) {
+          savedCount++;
+        }
+      }
+
+      logger.info({ loaded: messages.length, saved: savedCount }, 'История загружена');
+
+      res.json({
+        success: true,
+        loaded: messages.length,
+        saved: savedCount,
+      });
+    } catch (err: unknown) {
+      logger.error({ err }, 'Ошибка загрузки истории');
       res.status(500).json({ error: 'Internal server error' });
     }
   }
