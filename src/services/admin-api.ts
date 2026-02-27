@@ -84,6 +84,7 @@ export class AdminApi {
 
     // Admin endpoints (требуют аутентификации)
     this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
+    this.app.post('/admin/history/status', this.adminAuthMiddleware.bind(this), this.getHistoryStatus.bind(this));
     this.app.delete('/admin/history/:chatId', this.adminAuthMiddleware.bind(this), this.clearHistory.bind(this));
     this.app.get('/admin/signals', this.adminAuthMiddleware.bind(this), this.getSignals.bind(this));
     this.app.post('/admin/clients', this.adminAuthMiddleware.bind(this), this.createClient.bind(this));

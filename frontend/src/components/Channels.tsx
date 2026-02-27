@@ -16,6 +16,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
   const [loadingHistory, setLoadingHistory] = useState<number | null>(null);
   const [historyProgress, setHistoryProgress] = useState<{loaded: number, saved: number, duplicates?: number} | null>(null);
   const [clearingHistory, setClearingHistory] = useState<number | null>(null);
+  const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!adminKey) {
@@ -80,6 +81,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
     setError(null);
 
     try {
+      // Шаг 1: Запускаем загрузку
       const response = await fetch('/admin/history/load', {
         method: 'POST',
         headers: {
@@ -91,19 +93,61 @@ export default function Channels({ adminKey }: ChannelsProps) {
 
       const result = await response.json();
 
-      if (response.ok) {
-        setHistoryProgress({ 
-          loaded: result.loaded, 
-          saved: result.saved,
-          duplicates: result.duplicates 
-        });
-        setTimeout(() => setHistoryProgress(null), 10000);
+      if (response.ok && result.loaded > 0) {
+        // Шаг 2: Polling статуса (каждую секунду проверяем)
+        let checkCount = 0;
+        const maxChecks = 300; // 5 минут максимум
+        
+        const pollInterval = setInterval(async () => {
+          checkCount++;
+          
+          try {
+            const statusResponse = await fetch(`/admin/history/status`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Admin-Key': adminKey,
+              },
+              body: JSON.stringify({ chat_id: chatId }),
+            });
+            
+            const status = await statusResponse.json();
+            
+            if (status.processing || checkCount >= maxChecks) {
+              // Всё ещё загружается или таймаут
+              if (checkCount >= maxChecks) {
+                clearInterval(pollInterval);
+                setHistoryProgress({ 
+                  loaded: status.loaded || result.loaded, 
+                  saved: status.saved || 0,
+                  duplicates: status.duplicates || 0,
+                  processing: false
+                });
+                setLoadingHistory(null);
+              }
+            } else if (status.completed) {
+              // Завершено
+              clearInterval(pollInterval);
+              setHistoryProgress({ 
+                loaded: status.loaded, 
+                saved: status.saved,
+                duplicates: status.duplicates,
+                processing: false
+              });
+              setLoadingHistory(null);
+            }
+          } catch (err) {
+            console.error('Polling error:', err);
+          }
+        }, 1000);
+        
+        setLoadingTaskId(result.task_id);
       } else {
-        setError(result.error || 'Ошибка загрузки истории');
+        setHistoryProgress({ loaded: 0, saved: 0 });
+        setLoadingHistory(null);
       }
     } catch (err) {
       setError('Ошибка загрузки истории');
-    } finally {
       setLoadingHistory(null);
     }
   };

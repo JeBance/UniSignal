@@ -7,16 +7,6 @@ export interface LoadHistoryOptions {
   limit?: number;
 }
 
-export interface TaskStatus {
-  task_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result?: {
-    count: number;
-    messages: any[];
-  };
-  error?: string;
-}
-
 /**
  * Сервис для загрузки истории сообщений через HTTP API Telegrab
  */
@@ -32,45 +22,19 @@ export class TelegrabHistoryService {
 
   /**
    * Загрузка истории сообщений через HTTP API Telegrab
+   * GET /messages - правильный эндпоинт согласно документации
    */
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
     const { chatId, limit } = options;
 
     try {
-      logger.info({ 
+      logger.info({
         baseUrl: this.baseUrl,
-        chatId, 
-        limit: limit || 'ALL' 
+        chatId,
+        limit: limit || 'ALL'
       }, 'Начало загрузки истории через Telegrab API');
 
-      // Шаг 1: Добавляем задачу в очередь
-      const loadResponse = await axios.post(
-        `${this.baseUrl}/load`,
-        {},
-        {
-          params: {
-            chat_id: chatId.toString(),
-            limit: limit || 0, // 0 = все сообщения
-          },
-          headers: {
-            'X-API-Key': this.apiKey,
-          },
-          timeout: 10000,
-        }
-      );
-
-      const taskId = loadResponse.data.task_id;
-      logger.info({ taskId }, 'Задача добавлена в очередь');
-
-      // Шаг 2: Ждём завершения задачи (поллинг)
-      const completed = await this.waitForTaskCompletion(taskId);
-      
-      if (!completed) {
-        logger.warn({ taskId }, 'Таймаут ожидания задачи');
-        return [];
-      }
-
-      // Шаг 3: Получаем сообщения из Telegrab
+      // Загружаем сообщения напрямую через GET /messages
       const messagesResponse = await axios.get(
         `${this.baseUrl}/messages`,
         {
@@ -109,53 +73,6 @@ export class TelegrabHistoryService {
       }
       return [];
     }
-  }
-
-  /**
-   * Ожидание завершения задачи
-   */
-  private async waitForTaskCompletion(
-    taskId: string, 
-    maxWaitTime = 300000, // 5 минут
-    pollInterval = 5000   // 5 секунд
-  ): Promise<boolean> {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < maxWaitTime) {
-      try {
-        const response = await axios.get<TaskStatus>(
-          `${this.baseUrl}/task/${taskId}`,
-          {
-            headers: {
-              'X-API-Key': this.apiKey,
-            },
-            timeout: 5000,
-          }
-        );
-
-        const status = response.data.status;
-        logger.debug({ taskId, status }, 'Статус задачи');
-
-        if (status === 'completed') {
-          logger.info({ taskId }, 'Задача завершена');
-          return true;
-        }
-
-        if (status === 'failed') {
-          logger.error({ taskId, error: response.data.error }, 'Задача не удалась');
-          return false;
-        }
-
-        // Ждём перед следующим опросом
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-      } catch (err) {
-        logger.warn({ taskId, err }, 'Ошибка проверки статуса задачи');
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      }
-    }
-
-    return false; // Таймаут
   }
 
   /**
