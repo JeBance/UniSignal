@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination } from 'react-bootstrap';
+import { useToast } from '../contexts/ToastContext';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
 interface SignalsProps {
@@ -7,6 +8,7 @@ interface SignalsProps {
 }
 
 export default function Signals({ adminKey }: SignalsProps) {
+  const toast = useToast();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
@@ -122,6 +124,7 @@ export default function Signals({ adminKey }: SignalsProps) {
         if (originalOnopen) originalOnopen.call(ws, event);
         console.log('WebSocket connected');
         setWsConnected(true);
+        toast.success('✅ Подключено к WebSocket');
       };
 
       ws.onmessage = (event) => {
@@ -152,6 +155,12 @@ export default function Signals({ adminKey }: SignalsProps) {
               const exists = prev.some(s => s.id === signalId);
               if (exists) return prev;
 
+              // Показываем уведомление о новом сигнале
+              const ticker = signalData.signal?.instrument?.ticker || signalData.ticker || '';
+              const direction = signalData.signal?.direction?.side?.toUpperCase() || signalData.direction || '';
+              const message = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
+              toast.success(message);
+
               // Преобразуем payload формат в data формат если нужно
               const formattedSignal = signalData.id
                 ? signalData // Уже в формате data
@@ -179,6 +188,7 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
         setWsConnected(false);
+        toast.error(`❌ Отключено: ${event.reason || 'Неизвестная ошибка'}`);
 
         // Очищаем ссылку только если это текущее соединение
         if (wsRef.current === ws) {
@@ -202,6 +212,7 @@ export default function Signals({ adminKey }: SignalsProps) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        toast.error('⚠️ Ошибка WebSocket соединения');
       };
     } catch (err) {
       console.error('Failed to connect to WebSocket');
