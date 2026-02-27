@@ -270,7 +270,7 @@ export default function Signals({ adminKey }: SignalsProps) {
                           fontSize: '11px', 
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
-                          maxHeight: '150px',
+                          height: '200px',
                           overflow: 'auto',
                           backgroundColor: '#1a1a1a',
                           color: '#ffffff',
@@ -306,7 +306,9 @@ export default function Signals({ adminKey }: SignalsProps) {
                         textAlign: 'left',
                         margin: 0,
                         whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word'
+                        wordBreak: 'break-word',
+                        height: '200px',
+                        overflow: 'auto'
                       }}>
                         {JSON.stringify({
                           direction: signal.direction || null,
