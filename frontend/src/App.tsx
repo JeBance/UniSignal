@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState, useEffect } from 'react';
-import { Container, Nav, Navbar, Alert, Spinner } from 'react-bootstrap';
+import { Container, Nav, Navbar, Alert, Spinner, Button } from 'react-bootstrap';
+import { useTheme } from './contexts/ThemeContext';
 import Dashboard from './components/Dashboard';
 import Clients from './components/Clients';
 import Channels from './components/Channels';
@@ -10,6 +11,7 @@ import { unisignalApi } from './api/unisignal';
 type Page = 'dashboard' | 'clients' | 'channels' | 'signals';
 
 function App() {
+  const { theme, toggleTheme } = useTheme();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [adminKey, setAdminKey] = useState(() => localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -100,7 +102,16 @@ function App() {
                 📺 Каналы
               </Nav.Link>
             </Nav>
-            <Nav>
+            <Nav className="align-items-center">
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={toggleTheme}
+                className="me-3"
+                title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </Button>
               {isAuthenticated ? (
                 <>
                   <Navbar.Text className="me-3">
