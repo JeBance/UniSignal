@@ -158,18 +158,27 @@ export class MessageRepository {
         long_count: string;
         short_count: string;
       }>(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           COUNT(*) FILTER (WHERE original_timestamp >= now() - interval '1 day') as today,
-          COUNT(*) FILTER (WHERE ticker IS NOT NULL) as with_ticker,
-          COUNT(*) FILTER (WHERE direction = 'LONG') as long_count,
-          COUNT(*) FILTER (WHERE direction = 'SHORT') as short_count
+          COUNT(*) FILTER (
+            WHERE ticker IS NOT NULL 
+            OR (parsed_signal->'signal'->'instrument'->>'ticker') IS NOT NULL
+          ) as with_ticker,
+          COUNT(*) FILTER (
+            WHERE direction = 'LONG' 
+            OR (parsed_signal->'signal'->'direction'->>'side') = 'long'
+          ) as long_count,
+          COUNT(*) FILTER (
+            WHERE direction = 'SHORT' 
+            OR (parsed_signal->'signal'->'direction'->>'side') = 'short'
+          ) as short_count
         FROM messages
       `);
-      
+
       const row = result.rows[0];
       if (!row) return null;
-      
+
       return {
         total: parseInt(row.total, 10),
         today: parseInt(row.today, 10),
