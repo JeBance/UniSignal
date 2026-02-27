@@ -33,6 +33,91 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [filterHasStopLoss, setFilterHasStopLoss] = useState<boolean>(false);
   const [showFiltersModal, setShowFiltersModal] = useState<boolean>(false);
 
+  // Избранные пресеты фильтров
+  const [filterPresets, setFilterPresets] = useState<Array<{ name: string; filters: Record<string, any> }>>(() => {
+    const saved = localStorage.getItem('signalFilterPresets');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
+  // Сохранение пресетов в localStorage
+  useEffect(() => {
+    localStorage.setItem('signalFilterPresets', JSON.stringify(filterPresets));
+  }, [filterPresets]);
+
+  // Сохранение текущего фильтра как пресет
+  const saveFilterPreset = () => {
+    if (!presetName.trim()) return;
+
+    const filters = {
+      filterDirection,
+      filterChannel,
+      filterTicker,
+      filterHasPrices,
+      filterSignalType,
+      filterExchange,
+      filterTimeframe,
+      filterMinConfidence,
+      filterHasEntry,
+      filterHasTargets,
+      filterHasStopLoss,
+    };
+
+    setFilterPresets(prev => {
+      const existing = prev.findIndex(p => p.name === presetName);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { name: presetName, filters };
+        return updated;
+      }
+      return [...prev, { name: presetName, filters }];
+    });
+
+    setPresetName('');
+    setShowSavePresetModal(false);
+    toast.success(`💾 Пресет "${presetName}" сохранён`);
+  };
+
+  // Загрузка пресета
+  const loadFilterPreset = (preset: { name: string; filters: Record<string, any> }) => {
+    const { filters } = preset;
+    setFilterDirection(filters.filterDirection);
+    setFilterChannel(filters.filterChannel);
+    setFilterTicker(filters.filterTicker);
+    setFilterHasPrices(filters.filterHasPrices);
+    setFilterSignalType(filters.filterSignalType);
+    setFilterExchange(filters.filterExchange);
+    setFilterTimeframe(filters.filterTimeframe);
+    setFilterMinConfidence(filters.filterMinConfidence);
+    setFilterHasEntry(filters.filterHasEntry);
+    setFilterHasTargets(filters.filterHasTargets);
+    setFilterHasStopLoss(filters.filterHasStopLoss);
+    toast.info(`📂 Загружен пресет "${preset.name}"`);
+  };
+
+  // Удаление пресета
+  const deleteFilterPreset = (name: string) => {
+    setFilterPresets(prev => prev.filter(p => p.name !== name));
+    toast.info(`🗑️ Пресет "${name}" удалён`);
+  };
+
+  // Сброс фильтров
+  const resetFilters = () => {
+    setFilterDirection('ALL');
+    setFilterChannel('ALL');
+    setFilterTicker('');
+    setFilterHasPrices(false);
+    setFilterSignalType('ALL');
+    setFilterExchange('ALL');
+    setFilterTimeframe('ALL');
+    setFilterMinConfidence(0);
+    setFilterHasEntry(false);
+    setFilterHasTargets(false);
+    setFilterHasStopLoss(false);
+    toast.info('🔄 Фильтры сброшены');
+  };
+
   // Сортировка
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
@@ -479,6 +564,37 @@ export default function Signals({ adminKey }: SignalsProps) {
                 <Dropdown.Item onClick={exportToJSON}>JSON</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
+            <Dropdown className="d-inline me-2">
+              <Dropdown.Toggle variant="outline-info" size="sm" id="preset-dropdown">
+                💾 Пресеты ({filterPresets.length})
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setShowSavePresetModal(true)}>
+                  ➕ Сохранить текущий
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                {filterPresets.length === 0 ? (
+                  <Dropdown.ItemText>Нет сохранённых пресетов</Dropdown.ItemText>
+                ) : (
+                  filterPresets.map(preset => (
+                    <Dropdown key={preset.name}>
+                      <Dropdown.Item onClick={() => loadFilterPreset(preset)}>
+                        {preset.name}
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        onClick={(e) => { e.stopPropagation(); deleteFilterPreset(preset.name); }}
+                        className="text-danger"
+                      >
+                        🗑️ Удалить
+                      </Dropdown.Item>
+                    </Dropdown>
+                  ))
+                )}
+              </Dropdown.Menu>
+            </Dropdown>
+            <Button variant="outline-warning" size="sm" onClick={resetFilters}>
+              🔄 Сброс
+            </Button>
             <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
               Очистить
             </Button>
@@ -989,6 +1105,33 @@ export default function Signals({ adminKey }: SignalsProps) {
         </Button>
         <Button variant="primary" onClick={() => setShowFiltersModal(false)}>
           Применить
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Modal для сохранения пресета */}
+    <Modal show={showSavePresetModal} onHide={() => setShowSavePresetModal(false)}>
+      <Modal.Header closeButton>
+        <Modal.Title>💾 Сохранить пресет фильтров</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form.Group>
+          <Form.Label>Название пресета</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Например: Только LONG с тикером"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && saveFilterPreset()}
+          />
+        </Form.Group>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={() => setShowSavePresetModal(false)}>
+          Отмена
+        </Button>
+        <Button variant="primary" onClick={saveFilterPreset} disabled={!presetName.trim()}>
+          Сохранить
         </Button>
       </Modal.Footer>
     </Modal>
