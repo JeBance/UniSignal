@@ -14,7 +14,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
   const [newChannelId, setNewChannelId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState<number | null>(null);
-  const [historyProgress, setHistoryProgress] = useState<{loaded: number, saved: number} | null>(null);
+  const [historyProgress, setHistoryProgress] = useState<{loaded: number, saved: number, duplicates?: number} | null>(null);
 
   useEffect(() => {
     if (!adminKey) {
@@ -85,14 +85,18 @@ export default function Channels({ adminKey }: ChannelsProps) {
           'Content-Type': 'application/json',
           'X-Admin-Key': adminKey,
         },
-        body: JSON.stringify({ chat_id: chatId, limit: 100 }),
+        body: JSON.stringify({ chat_id: chatId }), // Без limit - загружаются ВСЕ сообщения
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        setHistoryProgress({ loaded: result.loaded, saved: result.saved });
-        setTimeout(() => setHistoryProgress(null), 5000);
+        setHistoryProgress({ 
+          loaded: result.loaded, 
+          saved: result.saved,
+          duplicates: result.duplicates 
+        });
+        setTimeout(() => setHistoryProgress(null), 10000);
       } else {
         setError(result.error || 'Ошибка загрузки истории');
       }
@@ -133,7 +137,13 @@ export default function Channels({ adminKey }: ChannelsProps) {
           <Alert.Heading>✅ История загружена</Alert.Heading>
           <p>
             Загружено: <strong>{historyProgress.loaded}</strong> сообщений<br />
-            Сохранено: <strong>{historyProgress.saved}</strong> сообщений (остальные - дубликаты)
+            Сохранено: <strong>{historyProgress.saved}</strong> сообщений<br />
+            {historyProgress.duplicates && historyProgress.duplicates > 0 && (
+              <>Дубликатов: <strong>{historyProgress.duplicates}</strong><br /></>
+            )}
+            <small className="text-muted">
+              Все сообщения распарсены и доступны во вкладке "📡 Сигналы"
+            </small>
           </p>
           <ProgressBar now={100} label="Готово" variant="success" className="mt-2" />
         </Alert>

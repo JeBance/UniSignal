@@ -4,8 +4,7 @@ import { TelegrabMessage } from './telegrab-ws';
 
 export interface LoadHistoryOptions {
   chatId: number;
-  limit?: number;
-  offset?: number;
+  limit?: number; // Если не указан - загружаются ВСЕ сообщения
 }
 
 /**
@@ -20,12 +19,17 @@ export class TelegrabHistoryService {
 
   /**
    * Загрузка истории сообщений из SQLite
+   * Если limit не указан - загружаются ВСЕ сообщения для канала
    */
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
-    const { chatId, limit = 100, offset = 0 } = options;
+    const { chatId, limit } = options;
 
     return new Promise((resolve, reject) => {
-      logger.info({ dbPath: this.dbPath, chatId, limit }, 'Загрузка истории из SQLite');
+      logger.info({ 
+        dbPath: this.dbPath, 
+        chatId, 
+        limit: limit || 'ALL' 
+      }, 'Загрузка истории из SQLite');
 
       const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READONLY, (err) => {
         if (err) {
@@ -34,15 +38,25 @@ export class TelegrabHistoryService {
           return;
         }
 
-        const query = `
-          SELECT chat_id, message_id, raw_data, saved_at
-          FROM messages_raw
-          WHERE chat_id = ?
-          ORDER BY message_id DESC
-          LIMIT ? OFFSET ?
-        `;
+        // Если limit не указан - загружаем все сообщения
+        const query = limit 
+          ? `
+            SELECT chat_id, message_id, raw_data, saved_at
+            FROM messages_raw
+            WHERE chat_id = ?
+            ORDER BY message_id DESC
+            LIMIT ?
+          `
+          : `
+            SELECT chat_id, message_id, raw_data, saved_at
+            FROM messages_raw
+            WHERE chat_id = ?
+            ORDER BY message_id DESC
+          `;
 
-        db.all(query, [chatId, limit, offset], (err, rows) => {
+        const params = limit ? [chatId, limit] : [chatId];
+
+        db.all(query, params, (err, rows) => {
           if (err) {
             logger.error({ err }, 'Ошибка загрузки истории');
             db.close();

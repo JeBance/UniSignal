@@ -359,18 +359,21 @@ export class AdminApi {
    */
   private async loadHistory(req: Request, res: Response): Promise<void> {
     try {
-      const { chat_id, limit = 100 } = req.body;
+      const { chat_id, limit } = req.body;
 
       if (!chat_id) {
         res.status(400).json({ error: 'chat_id is required' });
         return;
       }
 
-      logger.info({ chat_id, limit }, 'Начало загрузки истории');
+      logger.info({ 
+        chat_id, 
+        limit: limit || 'ALL (все сообщения)' 
+      }, 'Начало загрузки истории');
 
       const { historyService, messageProcessor } = this.createHistoryServices();
 
-      // Загрузка истории
+      // Загрузка истории (без лимита по умолчанию)
       const messages = await historyService.loadChannelHistory(chat_id, limit);
 
       if (messages.length === 0) {
@@ -384,19 +387,28 @@ export class AdminApi {
 
       // Обработка и сохранение сообщений
       let savedCount = 0;
+      let duplicateCount = 0;
+      
       for (const msg of messages) {
         const processed = await messageProcessor.processMessage(msg);
         if (processed) {
           savedCount++;
+        } else {
+          duplicateCount++;
         }
       }
 
-      logger.info({ loaded: messages.length, saved: savedCount }, 'История загружена');
+      logger.info({ 
+        loaded: messages.length, 
+        saved: savedCount,
+        duplicates: duplicateCount 
+      }, 'История загружена');
 
       res.json({
         success: true,
         loaded: messages.length,
         saved: savedCount,
+        duplicates: duplicateCount,
       });
     } catch (err: unknown) {
       logger.error({ err }, 'Ошибка загрузки истории');
