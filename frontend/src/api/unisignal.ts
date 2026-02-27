@@ -174,12 +174,11 @@ export const unisignalApi = {
   connectWebSocket: (apiKey: string) => {
     const ws = new WebSocket(`${API_BASE_URL.replace('http', 'ws')}/ws`);
 
-    // Сохраняем любой существующий onopen и добавляем аутентификацию
-    const existingOnopen = ws.onopen;
-    ws.onopen = (event: Event) => {
-      if (existingOnopen) existingOnopen.call(ws, event);
-      // Отправляем аутентификацию сразу после подключения
-      ws.send(JSON.stringify({ action: 'auth', api_key: apiKey }));
+    ws.onopen = () => {
+      console.log('[WS] Connection opened, sending auth...');
+      const authMessage = JSON.stringify({ action: 'auth', api_key: apiKey });
+      console.log('[WS] Sending auth message:', authMessage.substring(0, 30) + '...');
+      ws.send(authMessage);
     };
 
     return ws;

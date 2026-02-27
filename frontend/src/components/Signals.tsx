@@ -116,8 +116,10 @@ export default function Signals({ adminKey }: SignalsProps) {
       const ws = unisignalApi.connectWebSocket(apiKey);
       wsRef.current = ws;
 
-      // Добавляем логирование и обработку сообщений
-      ws.onopen = () => {
+      // Сохраняем оригинальный onopen (который отправляет аутентификацию) и добавляем логирование
+      const originalOnopen = ws.onopen;
+      ws.onopen = (event: Event) => {
+        if (originalOnopen) originalOnopen.call(ws, event);
         console.log('WebSocket connected');
         setWsConnected(true);
       };
