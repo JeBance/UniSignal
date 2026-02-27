@@ -1,10 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import { unisignalApi, type Stats } from '../api/unisignal';
 
 interface DashboardProps {
   adminKey: string;
 }
+
+// Регистрация компонентов Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 export default function Dashboard({ adminKey }: DashboardProps) {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -18,16 +40,18 @@ export default function Dashboard({ adminKey }: DashboardProps) {
     }
 
     loadStats();
-    const interval = setInterval(loadStats, 30000); // Обновление каждые 30 секунд
+    const interval = setInterval(loadStats, 30000);
     return () => clearInterval(interval);
   }, [adminKey]);
 
   const loadStats = async () => {
     try {
+      setLoading(true);
       const response = await unisignalApi.getStats();
       setStats(response.data);
       setError(null);
     } catch (err) {
+      console.error('Failed to load stats:', err);
       setError('Не удалось загрузить статистику');
     } finally {
       setLoading(false);
@@ -60,6 +84,66 @@ export default function Dashboard({ adminKey }: DashboardProps) {
       </Alert>
     );
   }
+
+  // Данные для графика LONG/SHORT
+  const longShortData = {
+    labels: ['LONG', 'SHORT'],
+    datasets: [
+      {
+        label: 'Количество сигналов',
+        data: [stats.messages.long_count, stats.messages.short_count],
+        backgroundColor: ['#198754', '#dc3545'],
+        borderColor: ['#146c43', '#b02a37'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  // Данные для круговой диаграммы
+  const distributionData = {
+    labels: ['С тикером', 'Без тикера', 'За сегодня'],
+    datasets: [
+      {
+        data: [
+          stats.messages.with_ticker,
+          stats.messages.total - stats.messages.with_ticker,
+          stats.messages.today,
+        ],
+        backgroundColor: ['#0d6efd', '#6c757d', '#ffc107'],
+        borderColor: ['#0a58ca', '#5a6268', '#d39e00'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#9ca3af' : '#6c757d',
+        },
+        grid: {
+          color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#dee2e6',
+        },
+      },
+      x: {
+        ticks: {
+          color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#9ca3af' : '#6c757d',
+        },
+        grid: {
+          color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#dee2e6',
+        },
+      },
+    },
+  };
 
   return (
     <>
@@ -102,6 +186,34 @@ export default function Dashboard({ adminKey }: DashboardProps) {
               <Card.Title>Клиенты</Card.Title>
               <Card.Text className="display-4">{stats.clients.total}</Card.Text>
               <small>Активных: {stats.clients.active}</small>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col xs={12} md={6}>
+          <Card style={{ height: '100%' }}>
+            <Card.Header>
+              <strong>📊 LONG vs SHORT</strong>
+            </Card.Header>
+            <Card.Body>
+              <div style={{ height: '250px' }}>
+                <Bar data={longShortData} options={chartOptions} />
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col xs={12} md={6}>
+          <Card style={{ height: '100%' }}>
+            <Card.Header>
+              <strong>🍩 Распределение сообщений</strong>
+            </Card.Header>
+            <Card.Body>
+              <div style={{ height: '250px', display: 'flex', justifyContent: 'center' }}>
+                <Doughnut data={distributionData} options={chartOptions} />
+              </div>
             </Card.Body>
           </Card>
         </Col>
