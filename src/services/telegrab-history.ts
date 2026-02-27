@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 import { TelegrabMessage } from './telegrab-ws';
 
 export interface LoadHistoryOptions {
-  chatId: number;
+  chatId: number | string;
   limit?: number;
 }
 
@@ -35,11 +35,22 @@ export class TelegrabHistoryService {
     const batchSize = 10000; // Максимальный размер батча для Telegrab API
 
     // Преобразуем нормализованный chat_id обратно в оригинальный для Telegrab API
+    // chat_id может быть строкой (bigint из PostgreSQL) или числом
+    let numericChatId: number;
+    if (typeof chatId === 'string') {
+      numericChatId = parseInt(chatId, 10);
+    } else {
+      numericChatId = Math.round(chatId);
+    }
+
     // Если chat_id начинается с -100, извлекаем оригинальный ID
     // Используем BigInt для работы с большими числами
-    if (typeof chatId === 'number' && chatId < -1000000000000) {
-      chatId = Number(BigInt(Math.round(chatId)) + 1000000000000n);
+    if (numericChatId < -1000000000000) {
+      numericChatId = Number(BigInt(numericChatId) + 1000000000000n);
     }
+
+    // Обновляем chatId для использования в запросе
+    chatId = numericChatId;
 
     // Если limit = 0, загружаем всё (без ограничений)
     // Иначе используем указанный лимит

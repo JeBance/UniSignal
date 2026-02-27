@@ -57,7 +57,7 @@ export interface Client {
 }
 
 export interface Channel {
-  chat_id: number;
+  chat_id: number | string;
   name: string;
   is_active: boolean;
   created_at: string;
@@ -164,10 +164,10 @@ export const unisignalApi = {
   // Channels
   getChannels: (all = false) =>
     api.get<{ channels: Channel[] }>(`/admin/channels${all ? '?all=true' : ''}`),
-  addChannel: (chat_id: number, name: string, is_active = true) =>
+  addChannel: (chat_id: number | string, name: string, is_active = true) =>
     api.post<Channel>('/admin/channels', { chat_id, name, is_active }),
-  deleteChannel: (chatId: number) => api.delete(`/admin/channels/${chatId}`),
-  toggleChannel: (chatId: number, is_active: boolean) =>
+  deleteChannel: (chatId: number | string) => api.delete(`/admin/channels/${chatId}`),
+  toggleChannel: (chatId: number | string, is_active: boolean) =>
     api.patch(`/admin/channels/${chatId}/toggle`, { is_active }),
 
   // WebSocket

@@ -62,7 +62,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
     }
   };
 
-  const handleDeleteChannel = async (chatId: number) => {
+  const handleDeleteChannel = async (chatId: number | string) => {
     if (!confirm('Вы уверены, что хотите удалить этот канал?')) return;
 
     try {
@@ -82,8 +82,8 @@ export default function Channels({ adminKey }: ChannelsProps) {
     }
   };
 
-  const handleLoadHistory = async (chatId: number, limit?: number) => {
-    setLoadingHistory(chatId);
+  const handleLoadHistory = async (chatId: number | string, limit?: number) => {
+    setLoadingHistory(chatId as number);
     setHistoryProgress(null);
     setError(null);
 
@@ -94,7 +94,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
           'Content-Type': 'application/json',
           'X-Admin-Key': adminKey,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           chat_id: chatId,
           limit: limit || historyLimit,
         }),
@@ -110,7 +110,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
           processing: false,
         });
         setLoadingHistory(null);
-        
+
         // Скрываем прогресс через 10 секунд
         setTimeout(() => {
           setHistoryProgress(null);
@@ -143,10 +143,11 @@ export default function Channels({ adminKey }: ChannelsProps) {
       return;
     }
 
-    setClearingHistory(channel.chat_id);
+    const chatId = typeof channel.chat_id === 'string' ? channel.chat_id : String(channel.chat_id);
+    setClearingHistory(channel.chat_id as number);
 
     try {
-      const response = await fetch(`/admin/history/${channel.chat_id}`, {
+      const response = await fetch(`/admin/history/${chatId}`, {
         method: 'DELETE',
         headers: {
           'X-Admin-Key': adminKey,
