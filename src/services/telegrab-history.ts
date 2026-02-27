@@ -36,8 +36,9 @@ export class TelegrabHistoryService {
 
     // Преобразуем нормализованный chat_id обратно в оригинальный для Telegrab API
     // Если chat_id начинается с -100, извлекаем оригинальный ID
-    if (chatId < -1000000000000) {
-      chatId = Math.abs(chatId + 1000000000000);
+    // Используем BigInt для работы с большими числами
+    if (typeof chatId === 'number' && chatId < -1000000000000) {
+      chatId = Number(BigInt(Math.round(chatId)) + 1000000000000n);
     }
 
     // Если limit = 0, загружаем всё (без ограничений)
