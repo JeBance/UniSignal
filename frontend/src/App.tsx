@@ -17,18 +17,30 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [healthOk, setHealthOk] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [serverResponseTime, setServerResponseTime] = useState<number | null>(null);
 
   useEffect(() => {
-    // Проверка health endpoint
-    unisignalApi.health()
-      .then(() => {
+    // Проверка health endpoint с замером времени ответа
+    const checkHealth = async () => {
+      const startTime = performance.now();
+      try {
+        await unisignalApi.health();
+        const endTime = performance.now();
+        setServerResponseTime(Math.round(endTime - startTime));
         setHealthOk(true);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setHealthOk(false);
+        setServerResponseTime(null);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    
+    checkHealth();
+    
+    // Проверка каждые 30 секунд
+    const interval = setInterval(checkHealth, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -74,6 +86,20 @@ function App() {
           <Navbar.Brand href="#dashboard" onClick={() => setCurrentPage('dashboard')}>
             📡 UniSignal Relay
           </Navbar.Brand>
+          <Navbar.Text className="d-none d-lg-flex align-items-center ms-3">
+            <span
+              className="d-inline-block rounded-circle me-2"
+              style={{
+                width: '10px',
+                height: '10px',
+                backgroundColor: healthOk ? '#28a745' : '#dc3545',
+                boxShadow: healthOk ? '0 0 8px #28a745' : '0 0 8px #dc3545'
+              }}
+            />
+            <span className={healthOk ? 'text-success' : 'text-danger'} style={{ fontSize: '0.85rem' }}>
+              {healthOk ? `Онлайн ${serverResponseTime ? `(${serverResponseTime}ms)` : ''}` : 'Офлайн'}
+            </span>
+          </Navbar.Text>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
