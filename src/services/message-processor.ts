@@ -20,6 +20,8 @@ export interface ProcessedMessage {
 
 export interface MessageProcessorConfig {
   parseSignal?: (text: string) => SignalData;
+  broadcastToClients?: boolean; // Транслировать ли сообщения клиентам
+  onMessageProcessed?: (message: ProcessedMessage) => void; // Callback для новых сообщений
 }
 
 export interface SignalData {
@@ -118,7 +120,7 @@ export class MessageProcessor {
         '✅ Сообщение сохранено'
       );
 
-      return {
+      const processedMessage: ProcessedMessage = {
         id: savedMessage.id,
         unique_hash: savedMessage.unique_hash,
         channel_id: savedMessage.channel_id,
@@ -137,6 +139,13 @@ export class MessageProcessor {
         content_text: savedMessage.content_text,
         original_timestamp: savedMessage.original_timestamp,
       };
+
+      // Транслируем клиентам только если включено
+      if (this.config.broadcastToClients !== false && this.config.onMessageProcessed) {
+        this.config.onMessageProcessed(processedMessage);
+      }
+
+      return processedMessage;
     } catch (err: unknown) {
       // Ошибка БД - буферизуем сообщение
       logger.error({ err, message }, 'Ошибка сохранения, добавляем в буфер');

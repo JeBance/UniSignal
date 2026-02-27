@@ -44,6 +44,13 @@ async function main() {
 
   const messageProcessor = new MessageProcessor(channelRepo, messageRepo, {
     parseSignal,
+    broadcastToClients: true, // Транслировать новые сообщения
+    onMessageProcessed: (processed) => {
+      // Трансляция клиентам через WebSocket
+      if (clientWsServer) {
+        clientWsServer.broadcast(processed);
+      }
+    },
   });
 
   // Инициализация Telegrab WS клиента
@@ -72,11 +79,11 @@ async function main() {
       
       // Обработка сообщения: фильтрация, нормализация, сохранение
       const processed = await messageProcessor.processMessage(msg);
-      
+
       if (processed) {
         logger.info(
-          { 
-            id: processed.id, 
+          {
+            id: processed.id,
             channel: processed.channel_name,
             ticker: processed.ticker,
             direction: processed.direction,
@@ -86,11 +93,7 @@ async function main() {
           },
           '✅ Сообщение обработано'
         );
-        
-        // Трансляция клиентам через WebSocket
-        if (clientWsServer) {
-          clientWsServer.broadcast(processed);
-        }
+        // Трансляция выполняется в onMessageProcessed callback
       }
     } else if (event.type === 'message_edited') {
       logger.debug({ event }, 'Сообщение отредактировано (игнорируем)');

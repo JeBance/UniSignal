@@ -1,96 +1,76 @@
-import WebSocket from 'ws';
+import sqlite3 from 'sqlite3';
 import { logger } from '../utils/logger';
 import { TelegrabMessage } from './telegrab-ws';
 
-export interface TelegrabHistoryResponse {
-  messages: TelegrabMessage[];
-  total: number;
-}
-
 export interface LoadHistoryOptions {
-  chatId?: number;
+  chatId: number;
   limit?: number;
   offset?: number;
 }
 
 /**
- * Сервис для загрузки истории сообщений из Telegrab через WebSocket
+ * Сервис для загрузки истории сообщений из SQLite базы Telegrab
  */
 export class TelegrabHistoryService {
-  private wsUrl: string;
-  private apiKey: string;
+  private dbPath: string;
 
-  constructor(wsUrl: string, apiKey: string) {
-    this.wsUrl = wsUrl;
-    this.apiKey = apiKey;
+  constructor(dbPath: string) {
+    this.dbPath = dbPath;
   }
 
   /**
-   * Загрузка истории сообщений через WebSocket
-   * Telegrab может не поддерживать загрузку истории через WS
-   * В этом случае возвращаем пустой массив
+   * Загрузка истории сообщений из SQLite
    */
-  async loadHistory(options: LoadHistoryOptions = {}): Promise<TelegrabMessage[]> {
+  async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
     const { chatId, limit = 100, offset = 0 } = options;
 
-    return new Promise((resolve) => {
-      logger.info({ wsUrl: this.wsUrl, chatId, limit }, 'Попытка загрузки истории через WS');
+    return new Promise((resolve, reject) => {
+      logger.info({ dbPath: this.dbPath, chatId, limit }, 'Загрузка истории из SQLite');
 
-      // Создаем WebSocket соединение
-      const ws = new WebSocket(this.wsUrl, {
-        headers: {
-          'X-API-Key': this.apiKey,
-        },
-      });
-
-      const timeout = setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-          ws.close();
+      const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READONLY, (err) => {
+        if (err) {
+          logger.error({ err }, 'Ошибка подключения к SQLite');
+          resolve([]);
+          return;
         }
-        logger.warn('Таймаут ожидания истории');
-        resolve([]);
-      }, 10000);
 
-      ws.on('open', () => {
-        logger.info('WebSocket открыт для загрузки истории');
-        // Отправляем запрос на загрузку истории
-        ws.send(JSON.stringify({
-          action: 'get_history',
-          chat_id: chatId,
-          limit,
-          offset,
-        }));
-      });
+        const query = `
+          SELECT chat_id, message_id, raw_data, saved_at
+          FROM messages_raw
+          WHERE chat_id = ?
+          ORDER BY message_id DESC
+          LIMIT ? OFFSET ?
+        `;
 
-      ws.on('message', (data: WebSocket.Data) => {
-        try {
-          const message = JSON.parse(data.toString());
-          
-          // Если получили историю
-          if (message.action === 'history' || message.type === 'history') {
-            clearTimeout(timeout);
-            const messages = message.messages || message.data || [];
-            logger.info({ count: messages.length }, 'История получена');
-            ws.close();
-            resolve(messages as TelegrabMessage[]);
-          } else {
-            // Игнорируем другие сообщения
-            logger.debug({ message }, 'Получено сообщение (не история)');
+        db.all(query, [chatId, limit, offset], (err, rows) => {
+          if (err) {
+            logger.error({ err }, 'Ошибка загрузки истории');
+            db.close();
+            resolve([]);
+            return;
           }
-        } catch (err) {
-          logger.error({ err }, 'Ошибка парсинга сообщения истории');
-        }
-      });
 
-      ws.on('error', (err) => {
-        clearTimeout(timeout);
-        logger.error({ err }, 'Ошибка WebSocket при загрузке истории');
-        resolve([]);
-      });
+          const messages: TelegrabMessage[] = rows.map((row: any) => {
+            try {
+              const rawData = JSON.parse(row.raw_data);
+              return {
+                message_id: row.message_id,
+                chat_id: row.chat_id,
+                chat_title: rawData.chat_title || 'Unknown',
+                text: rawData.text || '',
+                sender_name: rawData.sender_name || null,
+                message_date: rawData.date || row.saved_at,
+              };
+            } catch (parseErr) {
+              logger.warn({ err: parseErr, messageId: row.message_id }, 'Ошибка парсинга raw_data');
+              return null;
+            }
+          }).filter((m): m is TelegrabMessage => m !== null);
 
-      ws.on('close', () => {
-        clearTimeout(timeout);
-        logger.debug('WebSocket закрыт');
+          logger.info({ loaded: messages.length }, 'История загружена');
+          db.close();
+          resolve(messages);
+        });
       });
     });
   }
@@ -106,14 +86,18 @@ export class TelegrabHistoryService {
   }
 
   /**
-   * Проверка доступности истории
+   * Проверка доступности базы данных
    */
-  async isHistoryAvailable(): Promise<boolean> {
-    try {
-      const messages = await this.loadHistory({ limit: 1 });
-      return messages.length >= 0;
-    } catch {
-      return false;
-    }
+  async isAvailable(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READONLY, (err) => {
+        if (err) {
+          resolve(false);
+          return;
+        }
+        db.close();
+        resolve(true);
+      });
+    });
   }
 }
