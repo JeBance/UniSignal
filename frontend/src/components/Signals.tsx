@@ -132,10 +132,43 @@ export default function Signals({ adminKey }: SignalsProps) {
           if (message.status === 'authenticated') {
             console.log('✅ WebSocket authenticated');
           } else if (message.type === 'signal') {
+            // Обрабатываем два формата сообщений:
+            // 1. {type: 'signal', data: {...}} - от broadcast()
+            // 2. {type: 'signal', action: 'new_signal', payload: {...}} - от broadcastSignal()
+            const signalData = message.data || message.payload;
+
+            if (!signalData) {
+              console.warn('WebSocket signal без данных:', message);
+              return;
+            }
+
             setSignals((prev) => {
-              const exists = prev.some(s => s.id === message.data.id);
+              const signalId = signalData.id ?? signalData.signal_id;
+              if (!signalId) {
+                console.warn('Сигнал без ID:', signalData);
+                return prev;
+              }
+
+              const exists = prev.some(s => s.id === signalId);
               if (exists) return prev;
-              return [message.data, ...prev].slice(0, 1000);
+
+              // Преобразуем payload формат в data формат если нужно
+              const formattedSignal = signalData.id
+                ? signalData // Уже в формате data
+                : {
+                    id: signalData.signal_id,
+                    channel: signalData.source?.channel || 'Unknown',
+                    direction: signalData.signal?.direction?.side?.toUpperCase() || null,
+                    ticker: signalData.signal?.instrument?.ticker || null,
+                    entryPrice: signalData.signal?.trade_setup?.entry_price || null,
+                    stopLoss: signalData.signal?.trade_setup?.stop_loss?.stop_0_5 || null,
+                    takeProfit: signalData.signal?.trade_setup?.targets?.[0] || null,
+                    text: signalData.source?.original_text || '',
+                    timestamp: Math.floor(new Date(signalData.timestamp).getTime() / 1000),
+                    parsedSignal: signalData,
+                  };
+
+              return [formattedSignal, ...prev].slice(0, 1000);
             });
           }
         } catch (err) {
