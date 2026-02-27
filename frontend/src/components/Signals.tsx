@@ -53,11 +53,12 @@ export default function Signals({ adminKey }: SignalsProps) {
     try {
       const response = await unisignalApi.getClients();
       setClients(response.data.clients);
+      // Устанавливаем первого клиента только если ещё не выбран
       if (response.data.clients.length > 0 && !selectedClient) {
         setSelectedClient(response.data.clients[0].api_key);
       }
     } catch (err) {
-      console.error('Failed to load clients');
+      console.error('Failed to load clients:', err);
     } finally {
       setLoading(false);
     }
@@ -86,24 +87,36 @@ export default function Signals({ adminKey }: SignalsProps) {
   };
 
   useEffect(() => {
-    if (selectedClient && adminKey && !wsConnected) {
+    if (!selectedClient || !adminKey) return;
+
+    // Подключаемся только если ещё не подключены и нет активного соединения
+    if (!wsConnected && !wsRef.current) {
+      console.log('Connecting to WebSocket...');
       connectWebSocket(selectedClient);
     }
 
+    // Cleanup при размонтировании или смене клиента
     return () => {
-      // Cleanup
+      // Не закрываем соединение здесь, чтобы избежать лишних реконнектов
     };
-  }, [selectedClient, adminKey, wsConnected]);
+  }, [selectedClient, adminKey]);
 
   const connectWebSocket = (apiKey: string) => {
+    // Закрываем существующее соединение, если есть
     if (wsRef.current) {
-      wsRef.current.close();
+      if (wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING) {
+        console.log('Closing existing WebSocket connection...');
+        wsRef.current.close();
+      }
+      wsRef.current = null;
     }
 
     try {
       const ws = unisignalApi.connectWebSocket(apiKey);
       wsRef.current = ws;
 
+      // Добавляем логирование и обработку сообщений
       ws.onopen = () => {
         console.log('WebSocket connected');
         setWsConnected(true);
@@ -131,8 +144,21 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
         setWsConnected(false);
+
+        // Очищаем ссылку только если это текущее соединение
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+
+        // Не пытаемся переподключиться при ошибках аутентификации
+        if (event.code === 4001 || event.code === 4002) {
+          console.error(`WebSocket authentication error (${event.code}): ${event.reason}`);
+          return;
+        }
+
+        // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
-          if (selectedClient && adminKey) {
+          if (selectedClient && adminKey && !wsRef.current) {
             console.log('Reconnecting...');
             connectWebSocket(selectedClient);
           }
