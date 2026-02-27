@@ -23,50 +23,87 @@ export class TelegrabHistoryService {
   /**
    * Загрузка истории сообщений через HTTP API Telegrab
    * GET /messages - правильный эндпоинт согласно документации
+   * 
+   * При limit = 0 загружаются все сообщения (без ограничений)
+   * Telegrab API может возвращать данные с пагинацией, поэтому
+   * для больших объёмов нужно использовать несколько запросов
    */
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
     const { chatId, limit } = options;
+    const allMessages: TelegrabMessage[] = [];
+    let offset = 0;
+    const batchSize = 10000; // Максимальный размер батча для Telegrab API
+    
+    // Если limit = 0, загружаем всё (без ограничений)
+    // Иначе используем указанный лимит
+    const loadAll = (limit === 0 || limit === undefined);
 
     try {
       logger.info({
         baseUrl: this.baseUrl,
         chatId,
-        limit: limit || 'ALL'
+        limit: loadAll ? 'ALL (без ограничений)' : limit
       }, 'Начало загрузки истории через Telegrab API');
 
-      // Загружаем сообщения напрямую через GET /messages
-      const messagesResponse = await axios.get(
-        `${this.baseUrl}/messages`,
-        {
-          params: {
-            chat_id: chatId,
-            limit: limit || 10000,
-          },
-          headers: {
-            'X-API-Key': this.apiKey,
-          },
-          timeout: 30000,
+      // Циклически загружаем сообщения батчами
+      while (loadAll || allMessages.length < limit!) {
+        const currentLimit = loadAll 
+          ? batchSize 
+          : Math.min(batchSize, limit! - allMessages.length);
+        
+        const messagesResponse = await axios.get(
+          `${this.baseUrl}/messages`,
+          {
+            params: {
+              chat_id: chatId,
+              limit: currentLimit,
+              offset: offset, // Поддержка пагинации
+            },
+            headers: {
+              'X-API-Key': this.apiKey,
+            },
+            timeout: 60000, // Увеличенный таймаут для больших батчей
+          }
+        );
+
+        const batch: TelegrabMessage[] = messagesResponse.data.messages?.map((msg: any) => ({
+          message_id: msg.message_id,
+          chat_id: msg.chat_id,
+          chat_title: msg.chat_title || 'Unknown',
+          text: msg.text || '',
+          sender_name: msg.sender_name || null,
+          message_date: msg.message_date || msg.date,
+        })) || [];
+
+        if (batch.length === 0) {
+          // Больше нет сообщений
+          break;
         }
-      );
 
-      const messages: TelegrabMessage[] = messagesResponse.data.messages?.map((msg: any) => ({
-        message_id: msg.message_id,
-        chat_id: msg.chat_id,
-        chat_title: msg.chat_title || 'Unknown',
-        text: msg.text || '',
-        sender_name: msg.sender_name || null,
-        message_date: msg.message_date || msg.date,
-      })) || [];
+        allMessages.push(...batch);
+        offset += batch.length;
 
-      logger.info({ loaded: messages.length }, 'История загружена');
-      return messages;
+        logger.info({
+          loaded: allMessages.length,
+          batch: batch.length,
+          offset
+        }, `Загружено сообщений (всего: ${allMessages.length})`);
+
+        // Если получили меньше чем запросили, значит это последний батч
+        if (batch.length < currentLimit) {
+          break;
+        }
+      }
+
+      logger.info({ total: allMessages.length }, 'История загружена');
+      return allMessages;
 
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        logger.error({ 
-          err, 
-          status: err.response?.status, 
-          data: err.response?.data 
+        logger.error({
+          err,
+          status: err.response?.status,
+          data: err.response?.data
         }, 'Ошибка загрузки истории');
       } else {
         logger.error({ err }, 'Ошибка загрузки истории');
