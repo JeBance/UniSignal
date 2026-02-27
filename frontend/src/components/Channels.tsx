@@ -21,6 +21,9 @@ export default function Channels({ adminKey }: ChannelsProps) {
     processing?: boolean;
   } | null>(null);
   const [clearingHistory, setClearingHistory] = useState<number | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [selectedChannelForLimit, setSelectedChannelForLimit] = useState<Channel | null>(null);
+  const [historyLimit, setHistoryLimit] = useState<number>(1000);
 
   useEffect(() => {
     if (!adminKey) {
@@ -79,7 +82,7 @@ export default function Channels({ adminKey }: ChannelsProps) {
     }
   };
 
-  const handleLoadHistory = async (chatId: number) => {
+  const handleLoadHistory = async (chatId: number, limit?: number) => {
     setLoadingHistory(chatId);
     setHistoryProgress(null);
     setError(null);
@@ -91,7 +94,10 @@ export default function Channels({ adminKey }: ChannelsProps) {
           'Content-Type': 'application/json',
           'X-Admin-Key': adminKey,
         },
-        body: JSON.stringify({ chat_id: chatId }),
+        body: JSON.stringify({ 
+          chat_id: chatId,
+          limit: limit || historyLimit,
+        }),
       });
 
       const result = await response.json();
@@ -116,6 +122,19 @@ export default function Channels({ adminKey }: ChannelsProps) {
     } catch (err) {
       setError('Ошибка загрузки истории');
       setLoadingHistory(null);
+    }
+  };
+
+  const openLimitModal = (channel: Channel) => {
+    setSelectedChannelForLimit(channel);
+    setHistoryLimit(1000); // Значение по умолчанию
+    setShowLimitModal(true);
+  };
+
+  const handleLoadHistoryWithLimit = () => {
+    if (selectedChannelForLimit) {
+      setShowLimitModal(false);
+      handleLoadHistory(selectedChannelForLimit.chat_id, historyLimit);
     }
   };
 
@@ -267,8 +286,9 @@ export default function Channels({ adminKey }: ChannelsProps) {
                         variant="info"
                         size="sm"
                         className="ms-2"
-                        onClick={() => handleLoadHistory(channel.chat_id)}
+                        onClick={() => openLimitModal(channel)}
                         disabled={loadingHistory === channel.chat_id}
+                        title="Загрузить историю сообщений"
                       >
                         {loadingHistory === channel.chat_id ? (
                           <><Spinner as="span" animation="border" size="sm" className="me-1" />Загрузка...</>
@@ -334,6 +354,62 @@ export default function Channels({ adminKey }: ChannelsProps) {
           </Button>
           <Button variant="primary" onClick={handleAddChannel}>
             Добавить
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal для выбора лимита загрузки истории */}
+      <Modal show={showLimitModal} onHide={() => setShowLimitModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>📥 Загрузка истории</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedChannelForLimit && (
+            <>
+              <p className="mb-3">
+                <strong>Канал:</strong> {selectedChannelForLimit.name}
+              </p>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Количество сообщений для загрузки:</strong>
+                </Form.Label>
+                <Form.Select
+                  value={historyLimit}
+                  onChange={(e) => setHistoryLimit(Number(e.target.value))}
+                  size="lg"
+                >
+                  <option value="100">100 (быстро)</option>
+                  <option value="500">500</option>
+                  <option value="1000">1000 (рекомендуется)</option>
+                  <option value="5000">5000</option>
+                  <option value="10000">10000</option>
+                  <option value="0">Все сообщения (может занять много времени)</option>
+                </Form.Select>
+                <Form.Text className="text-muted">
+                  <br />
+                  ⏱️ Примерное время загрузки:<br />
+                  • 100 сообщений: ~10-30 секунд<br />
+                  • 1000 сообщений: ~2-5 минут<br />
+                  • Все сообщения: зависит от размера истории
+                </Form.Text>
+              </Form.Group>
+
+              <Alert variant="info" className="mb-0">
+                <small>
+                  ℹ️ Сообщения будут распарсены и сохранены в базу данных. 
+                  Дубликаты автоматически пропускаются.
+                </small>
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLimitModal(false)}>
+            Отмена
+          </Button>
+          <Button variant="primary" onClick={handleLoadHistoryWithLimit}>
+            📥 Начать загрузку
           </Button>
         </Modal.Footer>
       </Modal>
