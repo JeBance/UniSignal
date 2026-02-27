@@ -23,17 +23,23 @@ export class TelegrabHistoryService {
   /**
    * Загрузка истории сообщений через HTTP API Telegrab
    * GET /messages - правильный эндпоинт согласно документации
-   * 
+   *
    * При limit = 0 загружаются все сообщения (без ограничений)
    * Telegrab API может возвращать данные с пагинацией, поэтому
    * для больших объёмов нужно использовать несколько запросов
    */
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
-    const { chatId, limit } = options;
+    let { chatId, limit } = options;
     const allMessages: TelegrabMessage[] = [];
     let offset = 0;
     const batchSize = 10000; // Максимальный размер батча для Telegrab API
-    
+
+    // Преобразуем нормализованный chat_id обратно в оригинальный для Telegrab API
+    // Если chat_id начинается с -100, извлекаем оригинальный ID
+    if (chatId < -1000000000000) {
+      chatId = Math.abs(chatId + 1000000000000);
+    }
+
     // Если limit = 0, загружаем всё (без ограничений)
     // Иначе используем указанный лимит
     const loadAll = (limit === 0 || limit === undefined);
