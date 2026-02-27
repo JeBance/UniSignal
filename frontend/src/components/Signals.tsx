@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Spinner, Alert, Badge, Form } from 'react-bootstrap';
+import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal } from 'react-bootstrap';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
 interface SignalsProps {
@@ -13,6 +13,8 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -197,11 +199,16 @@ export default function Signals({ adminKey }: SignalsProps) {
       )}
 
       <Card>
-        <Card.Header>
-          <strong>Последние сигналы</strong>{' '}
-          <Badge bg="secondary">{signals.length}</Badge>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Последние сигналы</strong>{' '}
+            <Badge bg="secondary">{signals.length}</Badge>
+          </div>
+          <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
+            Очистить
+          </Button>
         </Card.Header>
-        <Card.Body style={{ maxHeight: '600px', overflowY: 'auto' }}>
+        <Card.Body style={{ maxHeight: '700px', overflowY: 'auto' }}>
           {signals.length === 0 ? (
             <div className="text-center text-muted py-5">
               <p className="mb-0">Сигналов пока нет</p>
@@ -210,21 +217,59 @@ export default function Signals({ adminKey }: SignalsProps) {
               </small>
             </div>
           ) : (
-            signals.map((signal) => (
-              <Card
-                key={signal.id}
-                className={`mb-3 border-${
-                  signal.direction === 'LONG'
-                    ? 'success'
-                    : signal.direction === 'SHORT'
-                    ? 'danger'
-                    : 'secondary'
-                }`}
-              >
-                <Card.Body>
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h5>
+            <Table responsive hover size="sm" className="align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th style={{ width: '30%' }}>📥 Входные данные</th>
+                  <th style={{ width: '30%' }}>🧠 После парсинга</th>
+                  <th style={{ width: '40%' }}>👁️ Читаемый вид</th>
+                </tr>
+              </thead>
+              <tbody>
+                {signals.map((signal) => (
+                  <tr key={signal.id}>
+                    <td className="align-top">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0"
+                        onClick={() => {
+                          setSelectedSignal(signal);
+                          setShowModal(true);
+                        }}
+                      >
+                        <pre className="mb-0 small" style={{ 
+                          fontSize: '11px', 
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          maxHeight: '150px',
+                          overflow: 'auto'
+                        }}>
+                          {JSON.stringify({
+                            id: signal.id,
+                            channel: signal.channel,
+                            text: signal.text,
+                            timestamp: signal.timestamp
+                          }, null, 2)}
+                        </pre>
+                      </Button>
+                    </td>
+                    <td className="align-top">
+                      <pre className="mb-0 small" style={{ 
+                        fontSize: '11px',
+                        color: signal.direction ? '#28a745' : '#6c757d'
+                      }}>
+                        {JSON.stringify({
+                          direction: signal.direction || null,
+                          ticker: signal.ticker || null,
+                          entryPrice: signal.entryPrice || null,
+                          stopLoss: signal.stopLoss || null,
+                          takeProfit: signal.takeProfit || null
+                        }, null, 2)}
+                      </pre>
+                    </td>
+                    <td className="align-top">
+                      <div>
                         {signal.direction && (
                           <Badge
                             bg={signal.direction === 'LONG' ? 'success' : 'danger'}
@@ -234,45 +279,91 @@ export default function Signals({ adminKey }: SignalsProps) {
                           </Badge>
                         )}
                         {signal.ticker && <strong>{signal.ticker}</strong>}
-                        <small className="text-muted ms-2">{signal.channel}</small>
-                      </h5>
-
-                      <div className="mt-2">
-                        {signal.entryPrice && (
-                          <span className="me-3">
-                            📍 <strong>Вход:</strong> {signal.entryPrice}
-                          </span>
-                        )}
-                        {signal.stopLoss && (
-                          <span className="me-3 text-danger">
-                            🛑 <strong>SL:</strong> {signal.stopLoss}
-                          </span>
-                        )}
-                        {signal.takeProfit && (
-                          <span className="text-success">
-                            🎯 <strong>TP:</strong> {signal.takeProfit}
-                          </span>
-                        )}
+                        <small className="text-muted d-block mb-2">{signal.channel}</small>
+                        
+                        <div className="small">
+                          {signal.entryPrice && (
+                            <div>📍 <strong>Вход:</strong> {signal.entryPrice}</div>
+                          )}
+                          {signal.stopLoss && (
+                            <div>🛑 <strong>SL:</strong> {signal.stopLoss}</div>
+                          )}
+                          {signal.takeProfit && (
+                            <div>🎯 <strong>TP:</strong> {signal.takeProfit}</div>
+                          )}
+                        </div>
+                        
+                        <div className="text-muted small mt-2">
+                          🕒 {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}
+                        </div>
                       </div>
-
-                      {signal.text && (
-                        <Card.Text className="mt-2 text-muted small">
-                          {signal.text.length > 200
-                            ? signal.text.substring(0, 200) + '...'
-                            : signal.text}
-                        </Card.Text>
-                      )}
-                    </div>
-                    <div className="text-muted small">
-                      {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}
-                    </div>
-                  </div>
-                </Card.Body>
-              </Card>
-            ))
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
           )}
         </Card.Body>
       </Card>
+
+      {/* Modal для просмотра полных данных */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Данные сигнала #{selectedSignal?.id}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedSignal && (
+            <>
+              <h6>📥 Исходный текст сообщения:</h6>
+              <pre className="bg-light p-3 rounded small" style={{ 
+                whiteSpace: 'pre-wrap', 
+                wordBreak: 'break-word',
+                maxHeight: '300px',
+                overflow: 'auto'
+              }}>
+                {selectedSignal.text}
+              </pre>
+              
+              <h6 className="mt-4">🧠 Распознанные данные:</h6>
+              <Table bordered size="sm">
+                <tbody>
+                  <tr>
+                    <th>Направление:</th>
+                    <td>
+                      {selectedSignal.direction ? (
+                        <Badge bg={selectedSignal.direction === 'LONG' ? 'success' : 'danger'}>
+                          {selectedSignal.direction}
+                        </Badge>
+                      ) : <span className="text-muted">Не определено</span>}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Тикер:</th>
+                    <td>{selectedSignal.ticker || <span className="text-muted">Не определено</span>}</td>
+                  </tr>
+                  <tr>
+                    <th>Цена входа:</th>
+                    <td>{selectedSignal.entryPrice || <span className="text-muted">Не указана</span>}</td>
+                  </tr>
+                  <tr>
+                    <th>Stop Loss:</th>
+                    <td>{selectedSignal.stopLoss || <span className="text-muted">Не указан</span>}</td>
+                  </tr>
+                  <tr>
+                    <th>Take Profit:</th>
+                    <td>{selectedSignal.takeProfit || <span className="text-muted">Не указан</span>}</td>
+                  </tr>
+                </tbody>
+              </Table>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Закрыть
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 }
