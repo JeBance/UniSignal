@@ -208,7 +208,7 @@ export default function Signals({ adminKey }: SignalsProps) {
             Очистить
           </Button>
         </Card.Header>
-        <Card.Body style={{ maxHeight: '700px', overflowY: 'auto' }}>
+        <Card.Body>
           {signals.length === 0 ? (
             <div className="text-center text-muted py-5">
               <p className="mb-0">Сигналов пока нет</p>
@@ -232,7 +232,7 @@ export default function Signals({ adminKey }: SignalsProps) {
                   </tr>
                 </thead>
               </Table>
-              <div style={{ maxHeight: '650px', overflowY: 'auto' }}>
+              <div>
                 {signals.map((signal) => (
                   <div 
                     key={signal.id} 
