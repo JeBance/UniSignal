@@ -141,7 +141,7 @@ export default function Signals({ adminKey }: SignalsProps) {
     setSignals([]);
   };
 
-  // Получение уникальных каналов для фильтра
+  // Получение уникальных каналов для фильтра (из всех сигналов, не только отфильтрованных)
   const uniqueChannels = Array.from(new Set(signals.map(s => s.channel))).sort();
 
   // Применение фильтров и сортировки
@@ -175,6 +175,55 @@ export default function Signals({ adminKey }: SignalsProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterDirection, filterChannel, filterTicker, filterHasPrices]);
+
+  // Обновление списка каналов при загрузке новых сигналов
+  useEffect(() => {
+    if (signals.length > 0) {
+      const channels = Array.from(new Set(signals.map(s => s.channel))).sort();
+      // Если текущий выбранный канал отсутствует в списке, сбрасываем на 'ALL'
+      if (filterChannel !== 'ALL' && !channels.includes(filterChannel)) {
+        setFilterChannel('ALL');
+      }
+    }
+  }, [signals]);
+
+  // Функция для получения видимых страниц пагинации
+  const getVisiblePages = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5; // Максимальное количество видимых страниц
+    
+    if (totalPages <= maxVisible + 2) {
+      // Если страниц мало, показываем все
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Всегда показываем первую страницу
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+      
+      // Показываем страницы вокруг текущей
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        if (!pages.includes(i)) {
+          pages.push(i);
+        }
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+      
+      // Всегда показываем последнюю страницу
+      if (!pages.includes(totalPages)) {
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
 
   if (!adminKey) {
     return (
@@ -616,14 +665,18 @@ export default function Signals({ adminKey }: SignalsProps) {
                   <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
                   <Pagination.Prev onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} />
 
-                  {[...Array(totalPages)].map((_, i) => (
-                    <Pagination.Item
-                      key={i + 1}
-                      active={i + 1 === currentPage}
-                      onClick={() => setCurrentPage(i + 1)}
-                    >
-                      {i + 1}
-                    </Pagination.Item>
+                  {getVisiblePages().map((page, index) => (
+                    typeof page === 'number' ? (
+                      <Pagination.Item
+                        key={index}
+                        active={page === currentPage}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Pagination.Item>
+                    ) : (
+                      <Pagination.Ellipsis key={index} disabled />
+                    )
                   ))}
 
                   <Pagination.Next onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} />
