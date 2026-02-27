@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal } from 'react-bootstrap';
+import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination } from 'react-bootstrap';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
 interface SignalsProps {
@@ -14,13 +14,20 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
-  
+
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
   const [filterChannel, setFilterChannel] = useState<string>('ALL');
   const [filterTicker, setFilterTicker] = useState<string>('');
   const [filterHasPrices, setFilterHasPrices] = useState<boolean>(false);
-  
+
+  // Сортировка
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+  // Пагинация
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // Количество сигналов на странице
+
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -136,14 +143,37 @@ export default function Signals({ adminKey }: SignalsProps) {
   // Получение уникальных каналов для фильтра
   const uniqueChannels = Array.from(new Set(signals.map(s => s.channel))).sort();
 
-  // Применение фильтров
-  const filteredSignals = signals.filter(signal => {
-    if (filterDirection !== 'ALL' && signal.direction !== filterDirection) return false;
-    if (filterChannel !== 'ALL' && signal.channel !== filterChannel) return false;
-    if (filterTicker && !signal.ticker?.toLowerCase().includes(filterTicker.toLowerCase())) return false;
-    if (filterHasPrices && !signal.entryPrice && !signal.stopLoss && !signal.takeProfit) return false;
-    return true;
-  });
+  // Применение фильтров и сортировки
+  const filteredAndSortedSignals = (() => {
+    // Сначала фильтруем
+    let result = signals.filter(signal => {
+      if (filterDirection !== 'ALL' && signal.direction !== filterDirection) return false;
+      if (filterChannel !== 'ALL' && signal.channel !== filterChannel) return false;
+      if (filterTicker && !signal.ticker?.toLowerCase().includes(filterTicker.toLowerCase())) return false;
+      if (filterHasPrices && !signal.entryPrice && !signal.stopLoss && !signal.takeProfit) return false;
+      return true;
+    });
+
+    // Затем сортируем по дате
+    result.sort((a, b) => {
+      const timeA = a.timestamp || 0;
+      const timeB = b.timestamp || 0;
+      return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    });
+
+    return result;
+  })();
+
+  // Пагинация
+  const totalPages = Math.ceil(filteredAndSortedSignals.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSignals = filteredAndSortedSignals.slice(startIndex, endIndex);
+
+  // Сброс на первую страницу при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterDirection, filterChannel, filterTicker, filterHasPrices]);
 
   if (!adminKey) {
     return (
@@ -212,11 +242,22 @@ export default function Signals({ adminKey }: SignalsProps) {
         <Card.Header className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <strong>Последние сигналы</strong>{' '}
-            <Badge bg="secondary">{filteredSignals.length} / {signals.length}</Badge>
+            <Badge bg="secondary">{filteredAndSortedSignals.length} / {signals.length}</Badge>
           </div>
-          <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
-            Очистить
-          </Button>
+          <div>
+            <Button 
+              variant="outline-secondary" 
+              size="sm" 
+              onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              className="me-2"
+              title={`Сортировка: ${sortOrder === 'desc' ? 'Сначала новые' : 'Сначала старые'}`}
+            >
+              🕒 {sortOrder === 'desc' ? '↓' : '↑'}
+            </Button>
+            <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
+              Очистить
+            </Button>
+          </div>
         </Card.Header>
         
         {/* Фильтры */}
@@ -302,14 +343,14 @@ export default function Signals({ adminKey }: SignalsProps) {
         </div>
 
         <Card.Body>
-          {filteredSignals.length === 0 && signals.length === 0 ? (
+          {currentSignals.length === 0 && signals.length === 0 ? (
             <div className="text-center text-muted py-5">
               <p className="mb-0">Сигналов пока нет</p>
               <small>
                 Подключитесь к WebSocket и ожидайте новые сообщения из Telegram-каналов
               </small>
             </div>
-          ) : filteredSignals.length === 0 ? (
+          ) : currentSignals.length === 0 ? (
             <div className="text-center text-muted py-5">
               <p className="mb-0">Нет сигналов, соответствующих фильтрам</p>
               <Button
@@ -327,25 +368,26 @@ export default function Signals({ adminKey }: SignalsProps) {
               </Button>
             </div>
           ) : (
-            <Table responsive hover size="sm" className="align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th style={{ width: '30%' }}>📥 Входные данные</th>
-                  <th style={{ width: '30%' }}>🧠 После парсинга</th>
-                  <th style={{ width: '40%' }}>👁️ Читаемый вид</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSignals.map((signal) => (
-                  <tr key={signal.id}>
-                    <td className="align-top" style={{ textAlign: 'left' }}>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="p-0"
-                        onClick={() => {
-                          setSelectedSignal(signal);
-                          setShowModal(true);
+            <div>
+              <Table responsive hover size="sm" className="align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{ width: '30%' }}>📥 Входные данные</th>
+                    <th style={{ width: '30%' }}>🧠 После парсинга</th>
+                    <th style={{ width: '40%' }}>👁️ Читаемый вид</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentSignals.map((signal) => (
+                    <tr key={signal.id}>
+                      <td className="align-top" style={{ textAlign: 'left' }}>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0"
+                          onClick={() => {
+                            setSelectedSignal(signal);
+                            setShowModal(true);
                         }}
                         style={{ textDecoration: 'none', color: 'inherit' }}
                       >
@@ -565,9 +607,41 @@ export default function Signals({ adminKey }: SignalsProps) {
                 ))}
               </tbody>
             </Table>
-          )}
-        </Card.Body>
-      </Card>
+
+            {/* Пагинация */}
+            {totalPages > 1 && (
+              <div className="d-flex justify-content-center mt-3">
+                <Pagination>
+                  <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
+                  <Pagination.Prev onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} />
+
+                  {[...Array(totalPages)].map((_, i) => (
+                    <Pagination.Item
+                      key={i + 1}
+                      active={i + 1 === currentPage}
+                      onClick={() => setCurrentPage(i + 1)}
+                    >
+                      {i + 1}
+                    </Pagination.Item>
+                  ))}
+
+                  <Pagination.Next onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} />
+                  <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
+                </Pagination>
+              </div>
+            )}
+
+            {/* Информация о странице */}
+            <div className="text-center text-muted mt-2">
+              <small>
+                Показано {startIndex + 1}–{Math.min(endIndex, filteredAndSortedSignals.length)} из {filteredAndSortedSignals.length} сигналов
+                {totalPages > 1 && ` (страница ${currentPage} из ${totalPages})`}
+              </small>
+            </div>
+          </div>
+        )}
+      </Card.Body>
+    </Card>
 
       {/* Modal для просмотра полных данных */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
