@@ -365,18 +365,16 @@ export class AdminApi {
         return;
       }
 
-      // Преобразуем chat_id в число (может быть строкой из-за bigint в PostgreSQL)
-      const numericChatId = typeof chat_id === 'string' ? parseInt(chat_id, 10) : chat_id;
-
       logger.info({
-        chat_id: numericChatId,
+        chat_id,
         limit: limit || 'ALL (все сообщения)'
       }, 'Начало загрузки истории');
 
       const { historyService, messageProcessor } = this.createHistoryServices();
 
       // Загрузка истории (без лимита по умолчанию)
-      const messages = await historyService.loadChannelHistory(numericChatId, limit);
+      // chat_id передаётся как есть (может быть строкой или числом)
+      const messages = await historyService.loadChannelHistory(chat_id, limit);
 
       if (messages.length === 0) {
         res.json({
@@ -424,33 +422,22 @@ export class AdminApi {
   private async clearHistory(req: Request, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
-      let parsedChatId = parseInt(chatId, 10);
 
       if (!chatId) {
         res.status(400).json({ error: 'chatId is required' });
         return;
       }
 
-      logger.info({ chatId: parsedChatId }, 'Очистка истории канала');
-
-      // Нормализация chat_id (аналогично message-processor.ts)
-      // Если chat_id > 0, добавляем -100 префикс для супергрупп
-      if (parsedChatId > 0) {
-        parsedChatId = -1000000000000 - parsedChatId;
-      } else if (parsedChatId < 0 && String(parsedChatId).length < 13) {
-        // Короткий отрицательный ID → добавляем -100 префикс
-        parsedChatId = -1000000000000 - Math.abs(parsedChatId);
-      }
-      // Иначе уже правильный формат -100xxxxxxxxx
+      logger.info({ chatId }, 'Очистка истории канала');
 
       const pool = getPool();
       const result = await pool.query(
         'DELETE FROM messages WHERE channel_id = $1',
-        [parsedChatId]
+        [chatId]
       );
 
       const deletedCount = result.rowCount || 0;
-      logger.info({ chatId: parsedChatId, deleted: deletedCount }, 'История канала очищена');
+      logger.info({ chatId, deleted: deletedCount }, 'История канала очищена');
 
       res.json({
         success: true,

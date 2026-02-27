@@ -53,21 +53,12 @@ export class MessageProcessor {
    * Обработка сообщения от Telegrab
    */
   async processMessage(message: TelegrabMessage): Promise<ProcessedMessage | null> {
-    let { chat_id, chat_title, message_id, text, message_date } = message;
+    const { chat_id, chat_title, message_id, text, message_date } = message;
 
-    // Нормализация chat_id: Telegram использует разные форматы ID
-    // -100xxxxxxxxx для супергрупп (каналы)
-    // Telegrab может возвращать положительные ID без -100 префикса
-    let normalizedChatId = chat_id;
-
-    if (chat_id > 0) {
-      // Положительный ID - добавляем -100 префикс для супергрупп
-      normalizedChatId = -1000000000000 - chat_id;
-    } else if (chat_id < 0 && String(chat_id).length < 13) {
-      // Отрицательный, но без -100 префикса (короткий ID)
-      normalizedChatId = -1000000000000 - Math.abs(chat_id);
-    }
-    // Иначе уже правильный формат -100xxxxxxxxx (13+ цифр)
+    // Используем chat_id как есть от Telegrab
+    // Telegrab возвращает оригинальный chat_id из Telegram API
+    // Важно: 2678035223 и -1002678035223 — это РАЗНЫЕ чаты
+    const normalizedChatId = chat_id;
 
     // 1. Фильтрация по каналу
     const isChannelActive = await this.channelRepo.isActiveChannel(normalizedChatId);

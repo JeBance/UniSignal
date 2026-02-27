@@ -21,24 +21,21 @@ export interface ChannelInput {
 export class ChannelRepository {
   /**
    * Проверка наличия канала в белом списке
-   * Поддерживает оба формата chat_id: оригинальный и нормализованный (-100xxxxxxxxxx)
+   * Сравниваем chat_id напрямую без преобразований
+   * Важно: 2678035223 и -1002678035223 — это РАЗНЫЕ чаты
    */
-  async isActiveChannel(chatId: number): Promise<boolean> {
+  async isActiveChannel(chatId: number | string): Promise<boolean> {
     try {
-      // Преобразуем chat_id в строку для сравнения
+      // Преобразуем chat_id в строку для точного сравнения
       const chatIdStr = String(chatId);
-      
-      // Проверяем оба формата: оригинальный и нормализованный
+
+      // Проверяем точное совпадение chat_id
       const result = await getPool().query<Channel>(`
-        SELECT chat_id, name, is_active 
-        FROM channels 
-        WHERE (chat_id = $1 OR chat_id = $2 OR chat_id = $3) AND is_active = true
-      `, [
-        chatIdStr,
-        String(Math.abs(chatId)), // Абсолютное значение (без знака -)
-        String(-1000000000000 - Math.abs(chatId)) // Нормализованный формат
-      ]);
-      
+        SELECT chat_id, name, is_active
+        FROM channels
+        WHERE chat_id = $1 AND is_active = true
+      `, [chatIdStr]);
+
       return result.rows.length > 0;
     } catch (err) {
       logger.error({ err, chatId }, 'Ошибка проверки канала');

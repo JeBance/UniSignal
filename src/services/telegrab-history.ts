@@ -29,28 +29,14 @@ export class TelegrabHistoryService {
    * для больших объёмов нужно использовать несколько запросов
    */
   async loadHistory(options: LoadHistoryOptions): Promise<TelegrabMessage[]> {
-    let { chatId, limit } = options;
+    const { chatId, limit } = options;
     const allMessages: TelegrabMessage[] = [];
     let offset = 0;
     const batchSize = 10000; // Максимальный размер батча для Telegrab API
 
-    // Преобразуем нормализованный chat_id обратно в оригинальный для Telegrab API
-    // chat_id может быть строкой (bigint из PostgreSQL) или числом
-    let numericChatId: number;
-    if (typeof chatId === 'string') {
-      numericChatId = parseInt(chatId, 10);
-    } else {
-      numericChatId = Math.round(chatId);
-    }
-
-    // Если chat_id начинается с -100, извлекаем оригинальный ID
-    // Используем BigInt для работы с большими числами
-    if (numericChatId < -1000000000000) {
-      numericChatId = Number(BigInt(numericChatId) + 1000000000000n);
-    }
-
-    // Обновляем chatId для использования в запросе
-    chatId = numericChatId;
+    // Используем chat_id как есть (может быть строкой или числом)
+    // Важно: не преобразуем, так как 2678035223 и -1002678035223 — разные чаты
+    const apiChatId = chatId;
 
     // Если limit = 0, загружаем всё (без ограничений)
     // Иначе используем указанный лимит
@@ -59,21 +45,21 @@ export class TelegrabHistoryService {
     try {
       logger.info({
         baseUrl: this.baseUrl,
-        chatId,
+        chatId: apiChatId,
         limit: loadAll ? 'ALL (без ограничений)' : limit
       }, 'Начало загрузки истории через Telegrab API');
 
       // Циклически загружаем сообщения батчами
       while (loadAll || allMessages.length < limit!) {
-        const currentLimit = loadAll 
-          ? batchSize 
+        const currentLimit = loadAll
+          ? batchSize
           : Math.min(batchSize, limit! - allMessages.length);
-        
+
         const messagesResponse = await axios.get(
           `${this.baseUrl}/messages`,
           {
             params: {
-              chat_id: chatId,
+              chat_id: apiChatId,
               limit: currentLimit,
               offset: offset, // Поддержка пагинации
             },
