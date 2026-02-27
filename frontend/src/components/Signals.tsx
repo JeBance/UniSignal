@@ -55,7 +55,8 @@ export default function Signals({ adminKey }: SignalsProps) {
 
   const loadRecentSignals = async () => {
     try {
-      const response = await fetch('/admin/signals?limit=1000', {
+      // Загружаем все сигналы (без ограничения)
+      const response = await fetch('/admin/signals?limit=100000', {
         headers: {
           'X-Admin-Key': adminKey,
         },
