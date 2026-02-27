@@ -217,29 +217,56 @@ export default function Signals({ adminKey }: SignalsProps) {
               </small>
             </div>
           ) : (
-            <Table responsive hover size="sm" className="align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th style={{ width: '30%' }}>📥 Входные данные</th>
-                  <th style={{ width: '30%' }}>🧠 После парсинга</th>
-                  <th style={{ width: '40%' }}>👁️ Читаемый вид</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              <Table responsive hover size="sm" className="align-middle" style={{ tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '40%' }} />
+                </colgroup>
+                <thead className="table-light">
+                  <tr>
+                    <th style={{ width: '30%', textAlign: 'left' }}>📥 Входные данные</th>
+                    <th style={{ width: '30%', textAlign: 'left' }}>🧠 После парсинга</th>
+                    <th style={{ width: '40%', textAlign: 'left' }}>👁️ Читаемый вид</th>
+                  </tr>
+                </thead>
+              </Table>
+              <div style={{ maxHeight: '650px', overflowY: 'auto' }}>
                 {signals.map((signal) => (
-                  <tr key={signal.id}>
-                    <td className="align-top" style={{ textAlign: 'left' }}>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="p-0"
+                  <div 
+                    key={signal.id} 
+                    className="border-bottom"
+                    style={{ 
+                      display: 'flex', 
+                      minHeight: '150px',
+                      borderBottom: '1px solid #dee2e6'
+                    }}
+                  >
+                    <div 
+                      className="align-top" 
+                      style={{ 
+                        width: '30%', 
+                        padding: '8px',
+                        borderRight: '1px solid #dee2e6',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <button
                         onClick={() => {
                           setSelectedSignal(signal);
                           setShowModal(true);
                         }}
-                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          padding: 0, 
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'left'
+                        }}
                       >
-                        <pre className="mb-0 small" style={{ 
+                        <pre style={{ 
                           fontSize: '11px', 
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
@@ -249,7 +276,8 @@ export default function Signals({ adminKey }: SignalsProps) {
                           color: '#ffffff',
                           padding: '8px',
                           borderRadius: '4px',
-                          textAlign: 'left'
+                          textAlign: 'left',
+                          margin: 0
                         }}>
                           {JSON.stringify({
                             id: signal.id,
@@ -258,16 +286,27 @@ export default function Signals({ adminKey }: SignalsProps) {
                             timestamp: signal.timestamp
                           }, null, 2)}
                         </pre>
-                      </Button>
-                    </td>
-                    <td className="align-top" style={{ textAlign: 'left' }}>
-                      <pre className="mb-0 small" style={{ 
+                      </button>
+                    </div>
+                    <div 
+                      className="align-top" 
+                      style={{ 
+                        width: '30%', 
+                        padding: '8px',
+                        borderRight: '1px solid #dee2e6',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <pre style={{ 
                         fontSize: '11px',
                         backgroundColor: '#1a1a1a',
                         color: signal.direction ? '#4ade80' : '#9ca3af',
                         padding: '8px',
                         borderRadius: '4px',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        margin: 0,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
                       }}>
                         {JSON.stringify({
                           direction: signal.direction || null,
@@ -277,8 +316,15 @@ export default function Signals({ adminKey }: SignalsProps) {
                           takeProfit: signal.takeProfit || null
                         }, null, 2)}
                       </pre>
-                    </td>
-                    <td className="align-top">
+                    </div>
+                    <div 
+                      className="align-top" 
+                      style={{ 
+                        width: '40%', 
+                        padding: '8px',
+                        textAlign: 'left'
+                      }}
+                    >
                       <div>
                         {signal.direction && (
                           <Badge
@@ -307,11 +353,11 @@ export default function Signals({ adminKey }: SignalsProps) {
                           🕒 {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}
                         </div>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </Table>
+              </div>
+            </div>
           )}
         </Card.Body>
       </Card>
