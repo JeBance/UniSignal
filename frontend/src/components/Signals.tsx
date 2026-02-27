@@ -12,9 +12,15 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [selectedClient, setSelectedClient] = useState('');
   const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
+  
+  // Фильтры
+  const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
+  const [filterChannel, setFilterChannel] = useState<string>('ALL');
+  const [filterTicker, setFilterTicker] = useState<string>('');
+  const [filterHasPrices, setFilterHasPrices] = useState<boolean>(false);
+  
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -30,12 +36,11 @@ export default function Signals({ adminKey }: SignalsProps) {
     try {
       const response = await unisignalApi.getClients();
       setClients(response.data.clients);
-      // Автовыбор первого клиента
       if (response.data.clients.length > 0 && !selectedClient) {
         setSelectedClient(response.data.clients[0].api_key);
       }
     } catch (err) {
-      setError('Не удалось загрузить клиентов');
+      console.error('Failed to load clients');
     } finally {
       setLoading(false);
     }
@@ -43,7 +48,7 @@ export default function Signals({ adminKey }: SignalsProps) {
 
   const loadRecentSignals = async () => {
     try {
-      const response = await fetch('/admin/signals?limit=50', {
+      const response = await fetch('/admin/signals?limit=1000', {
         headers: {
           'X-Admin-Key': adminKey,
         },
@@ -68,10 +73,9 @@ export default function Signals({ adminKey }: SignalsProps) {
     }
 
     return () => {
-      // Не закрываем соединение при размонтировании компонента
-      // чтобы сохранить подключение при навигации
+      // Cleanup
     };
-  }, [selectedClient, adminKey]);
+  }, [selectedClient, adminKey, wsConnected]);
 
   const connectWebSocket = (apiKey: string) => {
     if (wsRef.current) {
@@ -85,7 +89,6 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onopen = () => {
         console.log('WebSocket connected');
         setWsConnected(true);
-        setError(null);
       };
 
       ws.onmessage = (event) => {
@@ -97,10 +100,9 @@ export default function Signals({ adminKey }: SignalsProps) {
             console.log('✅ WebSocket authenticated');
           } else if (message.type === 'signal') {
             setSignals((prev) => {
-              // Проверяем, нет ли уже такого сигнала
               const exists = prev.some(s => s.id === message.data.id);
               if (exists) return prev;
-              return [message.data, ...prev].slice(0, 50);
+              return [message.data, ...prev].slice(0, 1000);
             });
           }
         } catch (err) {
@@ -111,7 +113,6 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
         setWsConnected(false);
-        // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
           if (selectedClient && adminKey) {
             console.log('Reconnecting...');
@@ -122,16 +123,27 @@ export default function Signals({ adminKey }: SignalsProps) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        setError('Ошибка WebSocket соединения');
       };
     } catch (err) {
-      setError('Не удалось подключиться к WebSocket');
+      console.error('Failed to connect to WebSocket');
     }
   };
 
   const clearSignals = () => {
     setSignals([]);
   };
+
+  // Получение уникальных каналов для фильтра
+  const uniqueChannels = Array.from(new Set(signals.map(s => s.channel))).sort();
+
+  // Применение фильтров
+  const filteredSignals = signals.filter(signal => {
+    if (filterDirection !== 'ALL' && signal.direction !== filterDirection) return false;
+    if (filterChannel !== 'ALL' && signal.channel !== filterChannel) return false;
+    if (filterTicker && !signal.ticker?.toLowerCase().includes(filterTicker.toLowerCase())) return false;
+    if (filterHasPrices && !signal.entryPrice && !signal.stopLoss && !signal.takeProfit) return false;
+    return true;
+  });
 
   if (!adminKey) {
     return (
@@ -165,8 +177,6 @@ export default function Signals({ adminKey }: SignalsProps) {
         </div>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-
       {clients.length === 0 ? (
         <Alert variant="warning">
           <Alert.Heading>Нет клиентов</Alert.Heading>
@@ -199,74 +209,147 @@ export default function Signals({ adminKey }: SignalsProps) {
       )}
 
       <Card>
-        <Card.Header className="d-flex justify-content-between align-items-center">
+        <Card.Header className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <strong>Последние сигналы</strong>{' '}
-            <Badge bg="secondary">{signals.length}</Badge>
+            <Badge bg="secondary">{filteredSignals.length} / {signals.length}</Badge>
           </div>
           <Button variant="outline-secondary" size="sm" onClick={clearSignals}>
             Очистить
           </Button>
         </Card.Header>
+        
+        {/* Фильтры */}
+        <div className="p-3 bg-light border-bottom">
+          <div className="row g-3">
+            <div className="col-md-3">
+              <Form.Group>
+                <Form.Label><strong>⬆️ Направление</strong></Form.Label>
+                <Form.Select 
+                  value={filterDirection} 
+                  onChange={(e) => setFilterDirection(e.target.value as 'ALL' | 'LONG' | 'SHORT')}
+                  size="sm"
+                >
+                  <option value="ALL">Все</option>
+                  <option value="LONG">LONG</option>
+                  <option value="SHORT">SHORT</option>
+                </Form.Select>
+              </Form.Group>
+            </div>
+            
+            <div className="col-md-3">
+              <Form.Group>
+                <Form.Label><strong>📺 Канал</strong></Form.Label>
+                <Form.Select 
+                  value={filterChannel} 
+                  onChange={(e) => setFilterChannel(e.target.value)}
+                  size="sm"
+                >
+                  <option value="ALL">Все каналы</option>
+                  {uniqueChannels.map(channel => (
+                    <option key={channel} value={channel}>{channel}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+            
+            <div className="col-md-3">
+              <Form.Group>
+                <Form.Label><strong>🏷️ Тикер</strong></Form.Label>
+                <Form.Control 
+                  type="text" 
+                  placeholder="Например: BTC"
+                  value={filterTicker}
+                  onChange={(e) => setFilterTicker(e.target.value)}
+                  size="sm"
+                />
+              </Form.Group>
+            </div>
+            
+            <div className="col-md-3">
+              <Form.Group>
+                <Form.Label><strong>💰 Цены</strong></Form.Label>
+                <div className="d-flex align-items-center mt-2">
+                  <Form.Check 
+                    type="checkbox"
+                    id="filterHasPrices"
+                    label="Только с ценами"
+                    checked={filterHasPrices}
+                    onChange={(e) => setFilterHasPrices(e.target.checked)}
+                  />
+                </div>
+              </Form.Group>
+            </div>
+          </div>
+          
+          {/* Кнопка сброса фильтров */}
+          {(filterDirection !== 'ALL' || filterChannel !== 'ALL' || filterTicker || filterHasPrices) && (
+            <div className="mt-3">
+              <Button 
+                variant="outline-danger" 
+                size="sm"
+                onClick={() => {
+                  setFilterDirection('ALL');
+                  setFilterChannel('ALL');
+                  setFilterTicker('');
+                  setFilterHasPrices(false);
+                }}
+              >
+                🔄 Сбросить фильтры
+              </Button>
+            </div>
+          )}
+        </div>
+
         <Card.Body>
-          {signals.length === 0 ? (
+          {filteredSignals.length === 0 && signals.length === 0 ? (
             <div className="text-center text-muted py-5">
               <p className="mb-0">Сигналов пока нет</p>
               <small>
                 Подключитесь к WebSocket и ожидайте новые сообщения из Telegram-каналов
               </small>
             </div>
+          ) : filteredSignals.length === 0 ? (
+            <div className="text-center text-muted py-5">
+              <p className="mb-0">Нет сигналов, соответствующих фильтрам</p>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setFilterDirection('ALL');
+                  setFilterChannel('ALL');
+                  setFilterTicker('');
+                  setFilterHasPrices(false);
+                }}
+              >
+                🔄 Сбросить фильтры
+              </Button>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              <Table responsive hover size="sm" className="align-middle" style={{ tableLayout: 'fixed' }}>
-                <colgroup>
-                  <col style={{ width: '30%' }} />
-                  <col style={{ width: '30%' }} />
-                  <col style={{ width: '40%' }} />
-                </colgroup>
-                <thead className="table-light">
-                  <tr>
-                    <th style={{ width: '30%', textAlign: 'left' }}>📥 Входные данные</th>
-                    <th style={{ width: '30%', textAlign: 'left' }}>🧠 После парсинга</th>
-                    <th style={{ width: '40%', textAlign: 'left' }}>👁️ Читаемый вид</th>
-                  </tr>
-                </thead>
-              </Table>
-              <div>
-                {signals.map((signal) => (
-                  <div 
-                    key={signal.id} 
-                    className="border-bottom"
-                    style={{ 
-                      display: 'flex', 
-                      minHeight: '150px',
-                      borderBottom: '1px solid #dee2e6'
-                    }}
-                  >
-                    <div 
-                      className="align-top" 
-                      style={{ 
-                        width: '30%', 
-                        padding: '8px',
-                        borderRight: '1px solid #dee2e6',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <button
+            <Table responsive hover size="sm" className="align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th style={{ width: '30%' }}>📥 Входные данные</th>
+                  <th style={{ width: '30%' }}>🧠 После парсинга</th>
+                  <th style={{ width: '40%' }}>👁️ Читаемый вид</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSignals.map((signal) => (
+                  <tr key={signal.id}>
+                    <td className="align-top" style={{ textAlign: 'left' }}>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0"
                         onClick={() => {
                           setSelectedSignal(signal);
                           setShowModal(true);
                         }}
-                        style={{ 
-                          background: 'none', 
-                          border: 'none', 
-                          padding: 0, 
-                          cursor: 'pointer',
-                          width: '100%',
-                          textAlign: 'left'
-                        }}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                       >
-                        <pre style={{ 
+                        <pre className="mb-0 small" style={{ 
                           fontSize: '11px', 
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
@@ -286,18 +369,10 @@ export default function Signals({ adminKey }: SignalsProps) {
                             timestamp: signal.timestamp
                           }, null, 2)}
                         </pre>
-                      </button>
-                    </div>
-                    <div 
-                      className="align-top" 
-                      style={{ 
-                        width: '30%', 
-                        padding: '8px',
-                        borderRight: '1px solid #dee2e6',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <pre style={{ 
+                      </Button>
+                    </td>
+                    <td className="align-top" style={{ textAlign: 'left' }}>
+                      <pre className="mb-0 small" style={{ 
                         fontSize: '11px',
                         backgroundColor: '#1a1a1a',
                         color: signal.direction ? '#4ade80' : '#9ca3af',
@@ -318,15 +393,8 @@ export default function Signals({ adminKey }: SignalsProps) {
                           takeProfit: signal.takeProfit || null
                         }, null, 2)}
                       </pre>
-                    </div>
-                    <div 
-                      className="align-top" 
-                      style={{ 
-                        width: '40%', 
-                        padding: '8px',
-                        textAlign: 'left'
-                      }}
-                    >
+                    </td>
+                    <td className="align-top">
                       <div>
                         {signal.direction && (
                           <Badge
@@ -355,11 +423,11 @@ export default function Signals({ adminKey }: SignalsProps) {
                           🕒 {new Date(signal.timestamp * 1000).toLocaleString('ru-RU')}
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+              </tbody>
+            </Table>
           )}
         </Card.Body>
       </Card>
