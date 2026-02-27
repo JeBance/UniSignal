@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 import { ClientRepository } from '../db/repositories/client-repository';
 import { ChannelRepository } from '../db/repositories/channel-repository';
 import { MessageRepository } from '../db/repositories/message-repository';
-import { checkDatabaseConnection } from '../db/connection';
+import { checkDatabaseConnection, getPool } from '../db/connection';
 import { TelegrabHistoryService } from './telegrab-history';
 import { MessageProcessor } from './message-processor';
 import { createSignalParser } from './parser';
@@ -82,25 +82,17 @@ export class AdminApi {
       res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
     });
 
-    // History load (до middleware, так как требует отдельной обработки)
-    this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
-
     // Admin endpoints (требуют аутентификации)
-    this.app.use('/admin', this.adminAuthMiddleware.bind(this));
-    
-    // Clients
-    this.app.post('/admin/clients', this.createClient.bind(this));
-    this.app.get('/admin/clients', this.getClients.bind(this));
-    this.app.delete('/admin/clients/:id', this.deleteClient.bind(this));
-
-    // Channels
-    this.app.post('/admin/channels', this.addChannel.bind(this));
-    this.app.get('/admin/channels', this.getChannels.bind(this));
-    this.app.delete('/admin/channels/:chatId', this.deleteChannel.bind(this));
-    this.app.patch('/admin/channels/:chatId/toggle', this.toggleChannel.bind(this));
-
-    // Stats
-    this.app.get('/admin/stats', this.getStats.bind(this));
+    this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
+    this.app.get('/admin/signals', this.adminAuthMiddleware.bind(this), this.getSignals.bind(this));
+    this.app.post('/admin/clients', this.adminAuthMiddleware.bind(this), this.createClient.bind(this));
+    this.app.get('/admin/clients', this.adminAuthMiddleware.bind(this), this.getClients.bind(this));
+    this.app.delete('/admin/clients/:id', this.adminAuthMiddleware.bind(this), this.deleteClient.bind(this));
+    this.app.post('/admin/channels', this.adminAuthMiddleware.bind(this), this.addChannel.bind(this));
+    this.app.get('/admin/channels', this.adminAuthMiddleware.bind(this), this.getChannels.bind(this));
+    this.app.delete('/admin/channels/:chatId', this.adminAuthMiddleware.bind(this), this.deleteChannel.bind(this));
+    this.app.patch('/admin/channels/:chatId/toggle', this.adminAuthMiddleware.bind(this), this.toggleChannel.bind(this));
+    this.app.get('/admin/stats', this.adminAuthMiddleware.bind(this), this.getStats.bind(this));
 
     // 404 handler
     this.app.use((_req: Request, res: Response) => {
@@ -113,10 +105,18 @@ export class AdminApi {
    */
   private adminAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
     const adminKey = req.headers['x-admin-key'];
+    const expectedKey = this.config.adminMasterKey;
 
-    if (!adminKey || adminKey !== this.config.adminMasterKey) {
+    logger.debug({ 
+      path: req.path, 
+      providedKey: adminKey,
+      expectedKey,
+      match: adminKey === expectedKey
+    }, 'Проверка X-Admin-Key');
+
+    if (!adminKey || adminKey !== expectedKey) {
       logger.warn(
-        { path: req.path, hasKey: !!adminKey },
+        { path: req.path, hasKey: !!adminKey, keyLength: adminKey?.length },
         'Неверный или отсутствующий X-Admin-Key'
       );
       res.status(401).json({ error: 'Unauthorized: Invalid or missing X-Admin-Key' });
@@ -400,6 +400,42 @@ export class AdminApi {
       });
     } catch (err: unknown) {
       logger.error({ err }, 'Ошибка загрузки истории');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * GET /admin/signals - Получение последних сигналов
+   */
+  private async getSignals(req: Request, res: Response): Promise<void> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const pool = getPool();
+      const result = await pool.query(`
+        SELECT m.id, m.direction, m.ticker, m.entry_price, m.stop_loss, m.take_profit,
+               m.content_text, m.original_timestamp, c.name as channel_name
+        FROM messages m
+        LEFT JOIN channels c ON m.channel_id = c.chat_id
+        ORDER BY m.created_at DESC
+        LIMIT $1
+      `, [limit]);
+      
+      const signals = result.rows.map((row: any) => ({
+        id: row.id,
+        channel: row.channel_name || 'Unknown',
+        direction: row.direction,
+        ticker: row.ticker,
+        entryPrice: row.entry_price ? parseFloat(row.entry_price) : null,
+        stopLoss: row.stop_loss ? parseFloat(row.stop_loss) : null,
+        takeProfit: row.take_profit ? parseFloat(row.take_profit) : null,
+        text: row.content_text,
+        timestamp: Math.floor(new Date(row.original_timestamp).getTime() / 1000),
+      }));
+
+      res.json({ signals });
+    } catch (err: unknown) {
+      logger.error({ err }, 'Ошибка получения сигналов');
       res.status(500).json({ error: 'Internal server error' });
     }
   }

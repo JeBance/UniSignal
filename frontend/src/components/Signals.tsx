@@ -21,6 +21,7 @@ export default function Signals({ adminKey }: SignalsProps) {
       return;
     }
     loadClients();
+    loadRecentSignals();
   }, [adminKey]);
 
   const loadClients = async () => {
@@ -35,6 +36,27 @@ export default function Signals({ adminKey }: SignalsProps) {
       setError('Не удалось загрузить клиентов');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecentSignals = async () => {
+    try {
+      const response = await fetch('/admin/signals?limit=50', {
+        headers: {
+          'X-Admin-Key': adminKey,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedSignals = data.signals.map((s: any) => ({
+          ...s,
+          channel: s.channel || 'Unknown',
+        }));
+        setSignals(formattedSignals);
+      }
+    } catch (err) {
+      console.error('Failed to load recent signals:', err);
     }
   };
 
