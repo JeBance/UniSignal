@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useToast } from '../contexts/ToastContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import { unisignalApi, type Signal } from '../api/unisignal';
 import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB } from '../services/signals-db';
 
@@ -10,6 +11,7 @@ interface SignalsProps {
 
 export default function Signals({ adminKey }: SignalsProps) {
   const toast = useToast();
+  const { isConnected, lastMessage } = useWebSocket();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -126,6 +128,26 @@ export default function Signals({ adminKey }: SignalsProps) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const apiKeyRef = useRef<string | null>(null);
+
+  // Синхронизация wsConnected с контекстом
+  useEffect(() => {
+    setWsConnected(isConnected);
+  }, [isConnected]);
+
+  // Обработка новых сигналов из WebSocket
+  useEffect(() => {
+    if (lastMessage && lastMessage.id) {
+      // Проверяем, есть ли уже такой сигнал в таблице
+      setSignals(prev => {
+        const exists = prev.some(s => s.id === lastMessage.id);
+        if (exists) return prev;
+        
+        // Добавляем новый сигнал в начало списка
+        toast.success(`📡 Новый сигнал добавлен в таблицу`);
+        return [lastMessage, ...prev];
+      });
+    }
+  }, [lastMessage]);
 
   useEffect(() => {
     if (!adminKey) {
