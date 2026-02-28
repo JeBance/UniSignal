@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useToast } from '../contexts/ToastContext';
-import { unisignalApi, type Signal, type Client } from '../api/unisignal';
+import { unisignalApi, type Signal } from '../api/unisignal';
 
 interface SignalsProps {
   authType: 'admin' | 'client' | null;
@@ -10,8 +10,6 @@ interface SignalsProps {
 export default function Signals({ authType }: SignalsProps) {
   const toast = useToast();
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState('');
   const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -148,33 +146,9 @@ export default function Signals({ authType }: SignalsProps) {
       return;
     }
 
-    // Загружаем клиентов для выбора API ключа
-    loadClients();
+    // Загружаем сигналы и подключаемся к WebSocket
     loadRecentSignals();
   }, []);
-
-  const loadClients = async () => {
-    try {
-      const response = await unisignalApi.getClients();
-      setClients(response.data.clients);
-      // Устанавливаем первого клиента только если ещё не выбран
-      if (response.data.clients.length > 0 && !selectedClient) {
-        setSelectedClient(response.data.clients[0].api_key);
-      }
-      // После загрузки клиентов загружаем сигналы
-      loadRecentSignals();
-    } catch (err) {
-      console.error('Failed to load clients:', err);
-      setLoading(false);
-    }
-  };
-
-  // Автоматическое подключение к WebSocket при выборе клиента
-  useEffect(() => {
-    if (selectedClient && authType === 'client') {
-      connectWebSocket(selectedClient);
-    }
-  }, [selectedClient]);
 
   const loadRecentSignals = async () => {
     try {
@@ -198,21 +172,35 @@ export default function Signals({ authType }: SignalsProps) {
     }
   };
 
-  // WebSocket подключение для админа
+  // Автоматическое подключение к WebSocket с API ключом из localStorage
   useEffect(() => {
-    if (authType !== 'admin' || !selectedClient) return;
+    if (authType !== 'client') return;
 
-    // Подключаемся только если ещё не подключены и нет активного соединения
-    if (!wsConnected && !wsRef.current) {
-      console.log('Connecting to WebSocket...');
-      connectWebSocket(selectedClient);
+    const apiKey = localStorage.getItem('apiKey');
+    if (apiKey && !wsConnected && !wsRef.current) {
+      console.log('Connecting to WebSocket with client API key...');
+      connectWebSocket(apiKey);
     }
 
-    // Cleanup при размонтировании или смене клиента
     return () => {
-      // Не закрываем соединение здесь, чтобы избежать лишних реконнектов
+      // Не закрываем соединение здесь
     };
-  }, [selectedClient, authType]);
+  }, [authType]);
+
+  // WebSocket подключение для админа
+  useEffect(() => {
+    if (authType !== 'admin') return;
+
+    const apiKey = localStorage.getItem('adminKey');
+    if (apiKey && !wsConnected && !wsRef.current) {
+      console.log('Connecting to WebSocket with admin key...');
+      connectWebSocket(apiKey);
+    }
+
+    return () => {
+      // Не закрываем соединение здесь
+    };
+  }, [authType]);
 
   const connectWebSocket = (apiKey: string) => {
     // Закрываем существующее соединение, если есть
@@ -329,9 +317,14 @@ export default function Signals({ authType }: SignalsProps) {
 
         // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
-          if (selectedClient && !wsRef.current) {
-            console.log('Reconnecting...');
-            connectWebSocket(selectedClient);
+          if (!wsRef.current) {
+            const apiKey = authType === 'admin'
+              ? localStorage.getItem('adminKey')
+              : localStorage.getItem('apiKey');
+            if (apiKey) {
+              console.log('Reconnecting...');
+              connectWebSocket(apiKey);
+            }
           }
         }, 5000);
       };
@@ -535,59 +528,6 @@ export default function Signals({ authType }: SignalsProps) {
           </Button>
         </div>
       </div>
-
-      {authType === 'admin' && clients.length === 0 ? (
-        <Alert variant="warning">
-          <Alert.Heading>Нет клиентов</Alert.Heading>
-          <p>
-            Для подключения к WebSocket необходимо создать клиента.
-            Перейдите на вкладку <strong>👥 Клиенты</strong> и создайте нового клиента.
-          </p>
-        </Alert>
-      ) : authType === 'admin' ? (
-        <Card className="mb-4">
-          <Card.Body>
-            <Form>
-              <Form.Group>
-                <Form.Label>Выберите клиента для подключения</Form.Label>
-                <Form.Select
-                  value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
-                  style={{ maxWidth: '500px' }}
-                >
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.api_key}>
-                      {client.id.slice(0, 8)}... - {client.api_key}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Form>
-          </Card.Body>
-        </Card>
-      ) : (
-        <Card className="mb-4">
-          <Card.Body>
-            <Form>
-              <Form.Group>
-                <Form.Label>Выберите клиента для подключения к WebSocket</Form.Label>
-                <Form.Select
-                  value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
-                  style={{ maxWidth: '500px' }}
-                >
-                  <option value="">-- Выберите API ключ --</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.api_key}>
-                      {client.id.slice(0, 8)}... - {client.api_key}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Form>
-          </Card.Body>
-        </Card>
-      )}
 
       <Card>
         <Card.Header className="d-flex justify-content-between align-items-center mb-3">
