@@ -182,11 +182,12 @@ export class ClientWsServer {
             channel: message.channel_name,
             direction: message.direction,
             ticker: message.ticker,
-            entryPrice: message.entry_price,
-            stopLoss: message.stop_loss,
-            takeProfit: message.take_profit,
-            text: message.content_text,
+            entry_price: message.entry_price,
+            stop_loss: message.stop_loss,
+            take_profit: message.take_profit,
+            content_text: message.content_text,
             timestamp: Math.floor(message.original_timestamp.getTime() / 1000),
+            parsed_signal: message.parsedSignal,
           },
         }));
       } catch (err) {
