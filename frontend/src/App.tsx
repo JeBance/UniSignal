@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Container, Nav, Navbar, Alert, Spinner, Badge, Card, Form, Button } from 'react-bootstrap';
 import { useTheme } from './contexts/ThemeContext';
 import { useWebSocket } from './contexts/WebSocketContext';
+import { useToast } from './contexts/ToastContext';
 import Dashboard from './components/Dashboard';
 import Clients from './components/Clients';
 import Channels from './components/Channels';
@@ -14,6 +15,7 @@ type AuthType = 'admin' | 'client' | null;
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const toast = useToast();
   const { connect: connectWebSocket, disconnect: disconnectWebSocket, isConnected } = useWebSocket();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [authType, setAuthType] = useState<AuthType>(() => {
@@ -98,7 +100,7 @@ function App() {
         headers: { 'X-Admin-Key': authKey }
       });
       const adminData = await adminResponse.json();
-      
+
       if (adminData.valid && adminData.role === 'admin') {
         // Сохраняем ключи в localStorage СРАЗУ
         localStorage.setItem('authType', 'admin');
@@ -110,8 +112,8 @@ function App() {
         setIsAuthenticated(true);
         setIsAuthenticating(false);
         
-        // Подключаемся к WebSocket
-        connectWebSocket(authKey);
+        // Для админа: сначала загружаем клиентов и подключаемся с первым ключом
+        fetchFirstClientKeyAndConnect(authKey);
         return;
       }
 
@@ -141,6 +143,27 @@ function App() {
       console.error('Auth error:', err);
       setAuthError('Ошибка подключения к серверу');
       setIsAuthenticating(false);
+    }
+  };
+
+  // Загрузка первого клиентского ключа и подключение к WebSocket (для админа)
+  const fetchFirstClientKeyAndConnect = async (adminKey: string) => {
+    try {
+      const response = await fetch('/admin/clients', {
+        headers: { 'X-Admin-Key': adminKey }
+      });
+      const data = await response.json();
+      
+      if (data.clients && data.clients.length > 0) {
+        const firstApiKey = data.clients[0].api_key;
+        console.log('Connecting to WebSocket with first client API key:', firstApiKey.substring(0, 8) + '...');
+        connectWebSocket(firstApiKey);
+      } else {
+        console.warn('No clients found. Admin can still use the system but WebSocket won\'t be connected.');
+        toast.info('ℹ️ Нет клиентов для подключения к WebSocket');
+      }
+    } catch (err) {
+      console.error('Failed to load clients:', err);
     }
   };
 
