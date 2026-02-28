@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Table, Spinner, Alert, Modal, Form, Badge, ProgressBar } from 'react-bootstrap';
 import { unisignalApi, type Channel } from '../api/unisignal';
-import { clearSignals as clearSignalsDB, saveSignals, signalToDB } from '../services/signals-db';
+import { clearSignalsByChannel, saveSignals, signalToDB } from '../services/signals-db';
 
 interface ChannelsProps {
   adminKey: string;
@@ -172,11 +172,11 @@ export default function Channels({ adminKey }: ChannelsProps) {
       const result = await response.json();
 
       if (response.ok) {
-        // Очищаем IndexedDB
-        await clearSignalsDB();
+        // Очищаем IndexedDB для этого канала
+        await clearSignalsByChannel(channel.name);
 
         alert(`✅ Удалено ${result.deleted} сообщений из канала "${channel.name}"`);
-        
+
         // Просто обновляем список каналов без перезагрузки страницы
         loadChannels();
       } else {

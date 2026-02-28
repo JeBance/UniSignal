@@ -220,6 +220,30 @@ export async function pruneOldSignals(keepCount: number = 1000): Promise<void> {
   });
 }
 
+// Удаление сигналов конкретного канала
+export async function clearSignalsByChannel(channelName: string): Promise<void> {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([SIGNALS_STORE], 'readwrite');
+    const store = transaction.objectStore(SIGNALS_STORE);
+    const index = store.index('channel');
+    const request = index.openCursor(IDBKeyRange.only(channelName));
+    const toDelete: number[] = [];
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        toDelete.push(cursor.value.id);
+        store.delete(cursor.value.id);
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // Конвертация сигнала из API в формат для IndexedDB
 export function signalToDB(signal: any): SignalDB {
   return {
