@@ -35,7 +35,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     setIsConnecting(true);
     apiKeyRef.current = apiKey;
 
-    const ws = new WebSocket(`ws://localhost:3001/ws`);
+    // Определяем WebSocket URL на основе текущего хоста
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('WebSocket connected');
