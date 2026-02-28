@@ -31,3 +31,13 @@
 {"level":"info","time":"2026-02-28T08:30:02.766Z","pid":4030,"hostname":"xloyvpacdg","id":"148386","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"long","signal_type":"quick_target","msg":"✅ Сообщение сохранено"}
 {"level":"info","time":"2026-02-28T08:30:02.767Z","pid":4030,"hostname":"xloyvpacdg","id":"148386","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"LONG","entryPrice":1857,"stopLoss":null,"takeProfit":1867,"signalType":"quick_target","msg":"✅ Сообщение обработано"}
 {"level":"info","time":"2026-02-28T08:30:49.318Z","pid":4030,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:31:41.213Z","pid":4030,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T08:31:42.206Z","pid":4030,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T08:31:49.318Z","pid":4030,"hostname":"xloyvpacdg","clients":3,"buffer":0,"msg":"📊 Статистика"}
+{"level":"warn","time":"2026-02-28T08:32:12.116Z","pid":4030,"hostname":"xloyvpacdg","path":"/api/stats","msg":"Отсутствует ключ авторизации"}
+{"level":"info","time":"2026-02-28T08:32:49.321Z","pid":4030,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:33:10.210Z","pid":4030,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T08:33:10.337Z","pid":4030,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"warn","time":"2026-02-28T08:33:38.596Z","pid":4030,"hostname":"xloyvpacdg","path":"/api/stats","msg":"Отсутствует ключ авторизации"}
+{"level":"info","time":"2026-02-28T08:33:49.321Z","pid":4030,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:34:49.324Z","pid":4030,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}

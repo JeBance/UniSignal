@@ -67,13 +67,6 @@ function App() {
         if (data.valid) {
           setIsAuthenticated(true);
           setAuthError(null);
-          if (data.role === 'admin') {
-            localStorage.setItem('adminKey', authKey);
-            localStorage.removeItem('apiKey');
-          } else {
-            localStorage.setItem('apiKey', authKey);
-            localStorage.removeItem('adminKey');
-          }
         } else {
           handleLogout();
         }
@@ -84,14 +77,6 @@ function App() {
     };
 
     validateKey();
-  }, [authType, authKey]);
-
-  useEffect(() => {
-    if (authType && authKey) {
-      localStorage.setItem('authType', authType);
-      localStorage.setItem('authKey', authKey);
-      setIsAuthenticated(true);
-    }
   }, [authType, authKey]);
 
   const handleLogout = () => {
@@ -112,25 +97,39 @@ function App() {
     setAuthError(null);
     
     try {
-      // Сначала пробуем как админский ключ
       const adminResponse = await fetch('/api/auth/validate', {
         headers: { 'X-Admin-Key': authKey }
       });
       const adminData = await adminResponse.json();
       
       if (adminData.valid && adminData.role === 'admin') {
+        // Сохраняем ключи в localStorage СРАЗУ
+        localStorage.setItem('authType', 'admin');
+        localStorage.setItem('authKey', authKey);
+        localStorage.setItem('adminKey', authKey);
+        localStorage.removeItem('apiKey');
+        
         setAuthType('admin');
+        setIsAuthenticated(true);
+        setIsAuthenticating(false);
         return;
       }
       
-      // Если не админ, пробуем как клиентский ключ
       const clientResponse = await fetch('/api/auth/validate', {
         headers: { 'X-API-Key': authKey }
       });
       const clientData = await clientResponse.json();
       
       if (clientData.valid && clientData.role === 'client') {
+        // Сохраняем ключи в localStorage СРАЗУ
+        localStorage.setItem('authType', 'client');
+        localStorage.setItem('authKey', authKey);
+        localStorage.setItem('apiKey', authKey);
+        localStorage.removeItem('adminKey');
+        
         setAuthType('client');
+        setIsAuthenticated(true);
+        setIsAuthenticating(false);
       } else {
         setAuthError('Неверный ключ. Проверьте правильность ввода.');
         setIsAuthenticating(false);
