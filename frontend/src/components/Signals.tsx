@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Table, Modal, Pagination } from 'react-bootstrap';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { getAllSignals, saveSignals } from '../services/signals-db';
+import { useToast } from '../contexts/ToastContext';
+import { getAllSignals, saveSignals, getLastSignalTimestamp } from '../services/signals-db';
 import { type Signal } from '../api/unisignal';
 
 interface SignalsProps {
@@ -9,6 +10,7 @@ interface SignalsProps {
 }
 
 export default function Signals({ authType }: SignalsProps) {
+  const toast = useToast();
   const { isConnected, lastMessage } = useWebSocket();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,9 @@ export default function Signals({ authType }: SignalsProps) {
       if (dbSignals && dbSignals.length > 0) {
         console.log(`Loaded ${dbSignals.length} signals from IndexedDB`);
         setSignals(dbSignals as Signal[]);
+        
+        // Проверяем пропущенные сигналы с сервера
+        await loadMissingSignals();
       } else {
         // Если IndexedDB пуст, загружаем из API
         console.log('IndexedDB is empty, loading from API...');
@@ -83,6 +88,50 @@ export default function Signals({ authType }: SignalsProps) {
       console.error('Failed to load signals:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Загрузка пропущенных сигналов с сервера
+  const loadMissingSignals = async () => {
+    try {
+      // Получаем последний timestamp из IndexedDB
+      const lastTimestamp = await getLastSignalTimestamp();
+      
+      if (lastTimestamp > 0) {
+        console.log(`Checking for signals after ${new Date(lastTimestamp * 1000).toISOString()}`);
+        
+        // Запрашиваем сигналы новее последнего timestamp
+        const response = await fetch('/api/signals?limit=1000', {
+          headers: authType === 'admin' 
+            ? { 'X-Admin-Key': localStorage.getItem('adminKey') || '' }
+            : { 'X-API-Key': localStorage.getItem('apiKey') || '' }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const allSignals = data.signals || [];
+          
+          // Фильтруем только новые сигналы
+          const newSignals = allSignals.filter((s: any) => s.timestamp > lastTimestamp);
+          
+          if (newSignals.length > 0) {
+            console.log(`Found ${newSignals.length} new signals`);
+            
+            // Сохраняем в IndexedDB
+            const dbFormat = newSignals.map((s: any) => ({
+              ...s,
+              createdAt: Date.now()
+            }));
+            await saveSignals(dbFormat);
+            
+            // Добавляем в таблицу
+            setSignals(prev => [...newSignals, ...prev]);
+            toast.success(`📥 Загружено ${newSignals.length} пропущенных сигналов`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load missing signals:', err);
     }
   };
 

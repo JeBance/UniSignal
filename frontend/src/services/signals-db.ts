@@ -136,8 +136,28 @@ export async function getLastSignalTimestamp(): Promise<number> {
   });
 }
 
+// Получение последнего ID
+export async function getLastSignalId(): Promise<number> {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([SIGNALS_STORE], 'readonly');
+    const store = transaction.objectStore(SIGNALS_STORE);
+    const request = store.openCursor(null, 'prev');
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        resolve(cursor.value.id);
+      } else {
+        resolve(0);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // Получение сигналов новее указанного timestamp
-export async function getSignalsAfter(timestamp: number): Promise<SignalDB[]> {
+export async function getSignalsAfterTimestamp(timestamp: number): Promise<SignalDB[]> {
   const database = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction([SIGNALS_STORE], 'readonly');
