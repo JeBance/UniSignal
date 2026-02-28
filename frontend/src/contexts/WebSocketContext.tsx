@@ -52,24 +52,40 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     ws.onmessage = async (event) => {
       try {
         const message = JSON.parse(event.data);
-        setLastMessage(message);
+        console.log('WebSocket message:', message);
 
         if (message.status === 'authenticated') {
           console.log('✅ WebSocket authenticated');
           toast.success('✅ Подключено к WebSocket');
         } else if (message.type === 'signal') {
+          // Обрабатываем два формата сообщений
           const signalData = message.data || message.payload;
+          
           if (signalData) {
+            // Конвертируем формат из БД (snake_case) в frontend (camelCase)
+            const formattedSignal = {
+              id: signalData.id,
+              channel: signalData.channel || signalData.channel_name,
+              direction: signalData.direction,
+              ticker: signalData.ticker,
+              entryPrice: signalData.entry_price || signalData.entryPrice,
+              stopLoss: signalData.stop_loss || signalData.stopLoss,
+              takeProfit: signalData.take_profit || signalData.takeProfit,
+              text: signalData.content_text || signalData.text,
+              timestamp: signalData.timestamp,
+              parsedSignal: signalData.parsed_signal || signalData.parsedSignal,
+            };
+
             // Сохраняем в IndexedDB
-            const dbSignal = signalToDB(signalData);
+            const dbSignal = signalToDB(formattedSignal);
             await saveSignal(dbSignal);
 
             // Обновляем lastMessage для реактивности
-            setLastMessage(signalData);
+            setLastMessage(formattedSignal);
 
             // Показываем уведомление
-            const ticker = signalData.signal?.instrument?.ticker || signalData.ticker || '';
-            const direction = signalData.signal?.direction?.side?.toUpperCase() || signalData.direction || '';
+            const ticker = formattedSignal.parsedSignal?.signal?.instrument?.ticker || formattedSignal.ticker || '';
+            const direction = formattedSignal.parsedSignal?.signal?.direction?.side?.toUpperCase() || formattedSignal.direction || '';
             toast.success(`📡 Новый сигнал: ${direction} ${ticker}`.trim());
           }
         }
