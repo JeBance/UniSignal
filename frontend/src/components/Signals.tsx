@@ -146,7 +146,11 @@ export default function Signals({ authType }: SignalsProps) {
       return;
     }
 
-    // Загружаем сигналы и подключаемся к WebSocket
+    // Для админа загружаем клиентов и подключаемся к WebSocket с первым ключом
+    if (authType === 'admin') {
+      loadClientsAndConnect();
+    }
+    // Загружаем сигналы
     loadRecentSignals();
   }, []);
 
@@ -172,28 +176,30 @@ export default function Signals({ authType }: SignalsProps) {
     }
   };
 
-  // Автоматическое подключение к WebSocket с API ключом из localStorage
+  // Загрузка клиентов и подключение к WebSocket с первым ключом (для админа)
+  const loadClientsAndConnect = async () => {
+    try {
+      const response = await unisignalApi.getClients();
+      const clients = response.data.clients;
+
+      if (clients && clients.length > 0) {
+        // Используем первый созданный API ключ
+        const firstApiKey = clients[0].api_key;
+        console.log('Connecting to WebSocket with first client API key...');
+        connectWebSocket(firstApiKey);
+      }
+    } catch (err) {
+      console.error('Failed to load clients:', err);
+    }
+  };
+
+  // Автоматическое подключение к WebSocket с API ключом из localStorage (для клиента)
   useEffect(() => {
     if (authType !== 'client') return;
 
     const apiKey = localStorage.getItem('apiKey');
     if (apiKey && !wsConnected && !wsRef.current) {
       console.log('Connecting to WebSocket with client API key...');
-      connectWebSocket(apiKey);
-    }
-
-    return () => {
-      // Не закрываем соединение здесь
-    };
-  }, [authType]);
-
-  // WebSocket подключение для админа
-  useEffect(() => {
-    if (authType !== 'admin') return;
-
-    const apiKey = localStorage.getItem('adminKey');
-    if (apiKey && !wsConnected && !wsRef.current) {
-      console.log('Connecting to WebSocket with admin key...');
       connectWebSocket(apiKey);
     }
 
@@ -318,10 +324,14 @@ export default function Signals({ authType }: SignalsProps) {
         // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
           if (!wsRef.current) {
-            const apiKey = authType === 'admin'
-              ? localStorage.getItem('adminKey')
-              : localStorage.getItem('apiKey');
-            if (apiKey) {
+            const apiKey = authType === 'admin' || authType === 'client'
+              ? (authType === 'admin' ? null : localStorage.getItem('apiKey'))
+              : null;
+            
+            // Для админа пробуем получить первый ключ клиента
+            if (authType === 'admin') {
+              loadClientsAndConnect();
+            } else if (apiKey) {
               console.log('Reconnecting...');
               connectWebSocket(apiKey);
             }

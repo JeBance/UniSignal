@@ -2,29 +2,26 @@
 > unisignal-relay@1.0.0 dev
 > tsx watch src/index.ts
 
-{"level":"info","time":"2026-02-28T09:14:09.970Z","pid":6554,"hostname":"xloyvpacdg","msg":"🚀 Запуск UniSignal Relay..."}
-{"level":"info","time":"2026-02-28T09:14:09.971Z","pid":6554,"hostname":"xloyvpacdg","msg":"Подключение к базе данных инициализировано"}
-{"level":"info","time":"2026-02-28T09:14:09.992Z","pid":6554,"hostname":"xloyvpacdg","msg":"✅ Подключение к базе данных успешно"}
-{"level":"info","time":"2026-02-28T09:14:09.992Z","pid":6554,"hostname":"xloyvpacdg","msg":"Подключение к Telegrab WS: ws://localhost:3000/ws"}
-{"level":"info","time":"2026-02-28T09:14:09.997Z","pid":6554,"hostname":"xloyvpacdg","path":"/ws","msg":"📡 Client WS сервер запущен"}
-{"level":"info","time":"2026-02-28T09:14:09.997Z","pid":6554,"hostname":"xloyvpacdg","msg":"📡 Порт: 3001"}
-{"level":"info","time":"2026-02-28T09:14:09.997Z","pid":6554,"hostname":"xloyvpacdg","msg":"🔌 Подключение к Telegrab WS установлено"}
-{"level":"info","time":"2026-02-28T09:14:09.997Z","pid":6554,"hostname":"xloyvpacdg","msg":"🌐 Admin HTTP API запущен"}
-{"level":"info","time":"2026-02-28T09:14:09.997Z","pid":6554,"hostname":"xloyvpacdg","msg":"🔗 Client WS сервер запущен (путь: /ws)"}
-{"level":"info","time":"2026-02-28T09:14:09.998Z","pid":6554,"hostname":"xloyvpacdg","port":3001,"msg":"🌐 Admin HTTP API запущен на порту 3001"}
-{"level":"info","time":"2026-02-28T09:14:10.001Z","pid":6554,"hostname":"xloyvpacdg","msg":"✅ Подключение к Telegrab WebSocket успешно"}
-{"level":"info","time":"2026-02-28T09:15:04.015Z","pid":6554,"hostname":"xloyvpacdg","type":"new_message","msg":"📨 Событие от Telegrab"}
-{"level":"info","time":"2026-02-28T09:15:04.015Z","pid":6554,"hostname":"xloyvpacdg","chat_id":2678035223,"chat_title":"VasyaBTC-Signals 🟢🔴","message_id":17730,"msg":"Новое сообщение: \"2026-02-28T09:15:01Z, BINANCE \n \n**Тикер:** ETHUSD...\""}
-{"level":"info","time":"2026-02-28T09:15:04.019Z","pid":6554,"hostname":"xloyvpacdg","id":"148390","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"long","signal_type":"quick_target","msg":"✅ Сообщение сохранено"}
-{"level":"info","time":"2026-02-28T09:15:04.019Z","pid":6554,"hostname":"xloyvpacdg","id":"148390","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"LONG","entryPrice":1856,"stopLoss":null,"takeProfit":1859,"signalType":"quick_target","msg":"✅ Сообщение обработано"}
-{"level":"warn","time":"2026-02-28T09:15:08.299Z","pid":6554,"hostname":"xloyvpacdg","path":"/admin/clients","hasKey":false,"msg":"Неверный или отсутствующий X-Admin-Key"}
-{"level":"info","time":"2026-02-28T09:15:09.997Z","pid":6554,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T09:16:10.001Z","pid":6554,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T09:17:10.001Z","pid":6554,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T09:18:10.005Z","pid":6554,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T09:19:10.022Z","pid":6554,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T09:19:40.506Z","pid":6554,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
-{"level":"info","time":"2026-02-28T09:19:41.440Z","pid":6554,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
-{"level":"info","time":"2026-02-28T09:20:02.017Z","pid":6554,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
-{"level":"info","time":"2026-02-28T09:20:03.121Z","pid":6554,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
-{"level":"info","time":"2026-02-28T09:20:10.023Z","pid":6554,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:20:53.743Z","pid":7001,"hostname":"xloyvpacdg","msg":"🚀 Запуск UniSignal Relay..."}
+{"level":"info","time":"2026-02-28T09:20:53.743Z","pid":7001,"hostname":"xloyvpacdg","msg":"Подключение к базе данных инициализировано"}
+{"level":"info","time":"2026-02-28T09:20:53.764Z","pid":7001,"hostname":"xloyvpacdg","msg":"✅ Подключение к базе данных успешно"}
+{"level":"info","time":"2026-02-28T09:20:53.764Z","pid":7001,"hostname":"xloyvpacdg","msg":"Подключение к Telegrab WS: ws://localhost:3000/ws"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","path":"/ws","msg":"📡 Client WS сервер запущен"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","msg":"📡 Порт: 3001"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","msg":"🔌 Подключение к Telegrab WS установлено"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","msg":"🌐 Admin HTTP API запущен"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","msg":"🔗 Client WS сервер запущен (путь: /ws)"}
+{"level":"info","time":"2026-02-28T09:20:53.771Z","pid":7001,"hostname":"xloyvpacdg","port":3001,"msg":"🌐 Admin HTTP API запущен на порту 3001"}
+{"level":"info","time":"2026-02-28T09:20:53.774Z","pid":7001,"hostname":"xloyvpacdg","msg":"✅ Подключение к Telegrab WebSocket успешно"}
+{"level":"info","time":"2026-02-28T09:20:58.695Z","pid":7001,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T09:20:58.767Z","pid":7001,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"warn","time":"2026-02-28T09:21:17.960Z","pid":7001,"hostname":"xloyvpacdg","path":"/admin/clients","hasKey":false,"msg":"Неверный или отсутствующий X-Admin-Key"}
+{"level":"info","time":"2026-02-28T09:21:53.773Z","pid":7001,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:22:09.409Z","pid":7001,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"warn","time":"2026-02-28T09:22:09.504Z","pid":7001,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"Неверный API ключ"}
+{"level":"warn","time":"2026-02-28T09:22:39.409Z","pid":7001,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"Таймаут аутентификации, отключение"}
+{"level":"info","time":"2026-02-28T09:22:53.777Z","pid":7001,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:23:53.778Z","pid":7001,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:24:53.779Z","pid":7001,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:25:05.355Z","pid":7001,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T09:25:06.376Z","pid":7001,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
