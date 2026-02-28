@@ -144,19 +144,29 @@ export class AdminApi {
   /**
    * Middleware для проверки API ключа клиента
    * Клиенты могут только читать stats и signals
+   * Также принимает ADMIN_MASTER_KEY для полного доступа
    */
   private clientAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
     const apiKey = req.headers['x-api-key'];
+    const adminKey = req.headers['x-admin-key'];
 
     logger.debug({
       path: req.path,
-      hasKey: !!apiKey,
-      keyLength: apiKey?.length
-    }, 'Проверка X-API-Key');
+      hasApiKey: !!apiKey,
+      hasAdminKey: !!adminKey
+    }, 'Проверка ключа авторизации');
 
+    // Сначала проверяем админский ключ
+    if (adminKey && adminKey === this.config.adminMasterKey) {
+      (res.locals as any).authUser = { role: 'admin' } as AuthUser;
+      next();
+      return;
+    }
+
+    // Если нет админского ключа, проверяем клиентский
     if (!apiKey) {
-      logger.warn({ path: req.path }, 'Отсутствует X-API-Key');
-      res.status(401).json({ error: 'Unauthorized: Missing X-API-Key' });
+      logger.warn({ path: req.path }, 'Отсутствует ключ авторизации');
+      res.status(401).json({ error: 'Unauthorized: Missing API Key' });
       return;
     }
 
@@ -164,8 +174,8 @@ export class AdminApi {
     this.clientRepo.getByApiKey(apiKey.toString())
       .then(client => {
         if (!client || !client.is_active) {
-          logger.warn({ path: req.path, apiKey: apiKey.toString().substring(0, 8) }, 'Неверный X-API-Key');
-          res.status(401).json({ error: 'Unauthorized: Invalid X-API-Key' });
+          logger.warn({ path: req.path, apiKey: apiKey.toString().substring(0, 8) }, 'Неверный API ключ');
+          res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
           return;
         }
 
@@ -177,7 +187,7 @@ export class AdminApi {
         next();
       })
       .catch(err => {
-        logger.error({ err }, 'Ошибка проверки X-API-Key');
+        logger.error({ err }, 'Ошибка проверки API ключа');
         res.status(500).json({ error: 'Internal server error' });
       });
   }
