@@ -106,7 +106,7 @@ describe('ClientWsServer', () => {
       const testMessage = {
         id: 1,
         unique_hash: 'test_1',
-        channel_id: 123,
+        channel_id: '123',
         channel_name: 'Test Channel',
         direction: 'LONG' as const,
         ticker: 'BTCUSDT',
@@ -118,7 +118,7 @@ describe('ClientWsServer', () => {
       };
 
       wss.broadcast(testMessage);
-      
+
       // Проверяем, что метод выполняется без ошибок
       expect(true).toBe(true);
     });

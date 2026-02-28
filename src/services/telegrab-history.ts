@@ -70,7 +70,17 @@ export class TelegrabHistoryService {
           }
         );
 
-        const batch: TelegrabMessage[] = messagesResponse.data.messages?.map((msg: any) => ({
+        interface TelegrabApiResponse {
+          message_id: number;
+          chat_id: number;
+          chat_title?: string;
+          text?: string;
+          sender_name?: string;
+          message_date?: string;
+          date?: string;
+        }
+
+        const batch: TelegrabMessage[] = messagesResponse.data.messages?.map((msg: TelegrabApiResponse) => ({
           message_id: msg.message_id,
           chat_id: msg.chat_id,
           chat_title: msg.chat_title || 'Unknown',

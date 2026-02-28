@@ -13,7 +13,7 @@ export interface TradingSignal {
 
 export interface SignalSource {
   channel: string;
-  channel_id: number;
+  channel_id: string;
   sender_name?: string;
   message_id: number;
   message_date: string;
@@ -192,7 +192,7 @@ export class SignalParser {
       timestamp: new Date().toISOString(),
       source: {
         channel: rawMessage.chat_title || 'Unknown',
-        channel_id: rawMessage.chat_id,
+        channel_id: String(rawMessage.chat_id),
         sender_name: rawMessage.sender_name || undefined,
         message_id: rawMessage.message_id,
         message_date: rawMessage.message_date,
@@ -364,12 +364,11 @@ export class SignalParser {
 
     // Timeframe zones
     const timeframeZones: TimeframeZone[] = [];
-    const zonePattern = /(→|▲|▼)\*\*(🟩|🟥)(OS|OB)\*\*\s*([\d.]+)%\s*\/\s*([\d.]+)\s*-\s*\*\*([^\*]+)\*\*/gi;
+    const zonePattern = /(→|▲|▼)\*\*(🟩|🟥)(OS|OB)\*\*\s*([\d.]+)%\s*\/\s*([\d.]+)\s*-\s*\*([^*]+)\*/gi;
     let zoneMatch;
 
     while ((zoneMatch = zonePattern.exec(text)) !== null) {
       const trendRaw = zoneMatch[1];
-      const zoneColor = zoneMatch[2]; // 🟩 = OS, 🟥 = OB
       const zone = zoneMatch[3] as 'OS' | 'OB';
       const zonePercent = parseFloat(zoneMatch[4]);
       const rsi = parseFloat(zoneMatch[5]);
@@ -911,7 +910,7 @@ export class SignalParser {
  */
 export interface RawMessage {
   message_id: number;
-  chat_id: number;
+  chat_id: number | string;
   chat_title: string;
   text: string;
   sender_name?: string;

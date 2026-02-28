@@ -2,7 +2,7 @@ import { getPool } from '../connection';
 import { logger } from '../../utils/logger';
 
 export interface Channel {
-  chat_id: number;
+  chat_id: string;
   name: string;
   is_active: boolean;
   created_at: Date;
@@ -10,7 +10,7 @@ export interface Channel {
 }
 
 export interface ChannelInput {
-  chat_id: number;
+  chat_id: string | number;
   name: string;
   is_active?: boolean;
 }
@@ -20,21 +20,26 @@ export interface ChannelInput {
  */
 export class ChannelRepository {
   /**
+   * Преобразование chat_id в строку для безопасной работы с bigint
+   * Telegram chat_id могут быть больше MAX_SAFE_INTEGER (например, -1002678035223)
+   */
+  private normalizeChatId(chatId: number | string): string {
+    return String(chatId);
+  }
+
+  /**
    * Проверка наличия канала в белом списке
-   * Сравниваем chat_id напрямую без преобразований
-   * Важно: 2678035223 и -1002678035223 — это РАЗНЫЕ чаты
+   * Сравниваем chat_id как строки для избежания проблем с bigint
    */
   async isActiveChannel(chatId: number | string): Promise<boolean> {
     try {
-      // Преобразуем chat_id в строку для точного сравнения
-      const chatIdStr = String(chatId);
+      const normalizedChatId = this.normalizeChatId(chatId);
 
-      // Проверяем точное совпадение chat_id
       const result = await getPool().query<Channel>(`
         SELECT chat_id, name, is_active
         FROM channels
         WHERE chat_id = $1 AND is_active = true
-      `, [chatIdStr]);
+      `, [normalizedChatId]);
 
       return result.rows.length > 0;
     } catch (err) {
@@ -95,11 +100,11 @@ export class ChannelRepository {
   /**
    * Обновление статуса канала
    */
-  async updateChannelStatus(chatId: number, isActive: boolean): Promise<boolean> {
+  async updateChannelStatus(chatId: number | string, isActive: boolean): Promise<boolean> {
     try {
       await getPool().query(
         'UPDATE channels SET is_active = $1, updated_at = now() WHERE chat_id = $2',
-        [isActive, chatId]
+        [isActive, this.normalizeChatId(chatId)]
       );
       return true;
     } catch (err) {
@@ -111,9 +116,9 @@ export class ChannelRepository {
   /**
    * Удаление канала
    */
-  async deleteChannel(chatId: number): Promise<boolean> {
+  async deleteChannel(chatId: number | string): Promise<boolean> {
     try {
-      await getPool().query('DELETE FROM channels WHERE chat_id = $1', [chatId]);
+      await getPool().query('DELETE FROM channels WHERE chat_id = $1', [this.normalizeChatId(chatId)]);
       return true;
     } catch (err) {
       logger.error({ err, chatId }, 'Ошибка удаления канала');

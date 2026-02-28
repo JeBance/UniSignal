@@ -137,7 +137,7 @@ export class AdminApi {
     }
 
     // Сохраняем информацию об пользователе для запроса
-    (res.locals as any).authUser = { role: 'admin' } as AuthUser;
+    (res.locals as { authUser?: AuthUser }).authUser = { role: 'admin' };
     next();
   }
 
@@ -158,7 +158,7 @@ export class AdminApi {
 
     // Сначала проверяем админский ключ
     if (adminKey && adminKey === this.config.adminMasterKey) {
-      (res.locals as any).authUser = { role: 'admin' } as AuthUser;
+      (res.locals as { authUser?: AuthUser }).authUser = { role: 'admin' };
       next();
       return;
     }
@@ -180,10 +180,10 @@ export class AdminApi {
         }
 
         // Сохраняем информацию об пользователе для запроса
-        (res.locals as any).authUser = {
+        (res.locals as { authUser?: AuthUser }).authUser = {
           role: 'client',
           clientId: client.id
-        } as AuthUser;
+        };
         next();
       })
       .catch(err => {
@@ -338,7 +338,7 @@ export class AdminApi {
       }
 
       const channel = await this.channelRepo.addChannel({
-        chat_id: parseInt(chat_id, 10),
+        chat_id: String(chat_id),
         name,
         is_active: is_active ?? true,
       });
@@ -349,7 +349,7 @@ export class AdminApi {
       }
 
       logger.info({ chatId: channel.chat_id, name: channel.name }, 'Канал добавлен');
-      
+
       res.status(201).json(channel);
     } catch (err) {
       logger.error({ err }, 'Ошибка добавления канала');
@@ -383,8 +383,8 @@ export class AdminApi {
   private async deleteChannel(req: Request, res: Response): Promise<void> {
     try {
       const { chatId } = req.params;
-      const success = await this.channelRepo.deleteChannel(parseInt(chatId, 10));
-      
+      const success = await this.channelRepo.deleteChannel(chatId);
+
       if (!success) {
         res.status(500).json({ error: 'Failed to delete channel' });
         return;
@@ -412,10 +412,10 @@ export class AdminApi {
       }
 
       const success = await this.channelRepo.updateChannelStatus(
-        parseInt(chatId, 10),
+        chatId,
         is_active
       );
-      
+
       if (!success) {
         res.status(500).json({ error: 'Failed to update channel' });
         return;
@@ -570,8 +570,8 @@ export class AdminApi {
       const pool = getPool();
       
       let query: string;
-      let params: any[];
-      
+      const params: (number | string)[] = [];
+
       if (since > 0) {
         // Загрузка сигналов новее указанного timestamp
         query = `
@@ -584,7 +584,7 @@ export class AdminApi {
           ORDER BY m.created_at DESC
           LIMIT $2
         `;
-        params = [since, limit];
+        params.push(since, limit);
       } else {
         // Загрузка всех сигналов
         query = `
@@ -596,12 +596,25 @@ export class AdminApi {
           ORDER BY m.created_at DESC
           LIMIT $1
         `;
-        params = [limit];
+        params.push(limit);
       }
 
       const result = await pool.query(query, params);
 
-      const signals = result.rows.map((row: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+      interface SignalRow {
+        id: number;
+        direction: string | null;
+        ticker: string | null;
+        entry_price: string | null;
+        stop_loss: string | null;
+        take_profit: string | null;
+        content_text: string;
+        original_timestamp: Date;
+        channel_name: string | null;
+        parsed_signal: Record<string, unknown> | null;
+      }
+
+      const signals = result.rows.map((row: SignalRow) => ({
         id: row.id,
         channel: row.channel_name || 'Unknown',
         direction: row.direction,

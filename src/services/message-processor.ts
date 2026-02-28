@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 export interface ProcessedMessage {
   id: number;
   unique_hash: string;
-  channel_id: number;
+  channel_id: string;
   channel_name: string;
   direction: string | null;
   ticker: string | null;
@@ -55,10 +55,9 @@ export class MessageProcessor {
   async processMessage(message: TelegrabMessage): Promise<ProcessedMessage | null> {
     const { chat_id, chat_title, message_id, text, message_date } = message;
 
-    // Используем chat_id как есть от Telegrab
-    // Telegrab возвращает оригинальный chat_id из Telegram API
-    // Важно: 2678035223 и -1002678035223 — это РАЗНЫЕ чаты
-    const normalizedChatId = chat_id;
+    // Преобразуем chat_id в строку для безопасной работы с bigint
+    // Telegram chat_id могут быть больше MAX_SAFE_INTEGER (например, -1002678035223)
+    const normalizedChatId = String(chat_id);
 
     // 1. Фильтрация по каналу
     const isChannelActive = await this.channelRepo.isActiveChannel(normalizedChatId);
@@ -199,7 +198,7 @@ export class MessageProcessor {
         try {
           const savedMessage = await this.messageRepo.save({
             unique_hash: uniqueHash,
-            channel_id: message.chat_id,
+            channel_id: String(message.chat_id),
             direction: parsedSignal?.signal.direction?.side?.toUpperCase() || null,
             ticker: parsedSignal?.signal.instrument.ticker || null,
             entry_price: parsedSignal?.signal.trade_setup?.entry_price || null,

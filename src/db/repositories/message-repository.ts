@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger';
 export interface Message {
   id: number;
   unique_hash: string;
-  channel_id: number;
+  channel_id: string;
   direction: string | null;
   ticker: string | null;
   entry_price: string | null;
@@ -18,7 +18,7 @@ export interface Message {
 
 export interface MessageInput {
   unique_hash: string;
-  channel_id: number;
+  channel_id: string | number;
   direction?: string | null;
   ticker?: string | null;
   entry_price?: number | string | null;
@@ -127,11 +127,11 @@ export class MessageRepository {
   /**
    * Получение сообщений по каналу
    */
-  async getByChannel(channelId: number, limit: number = 50): Promise<Message[]> {
+  async getByChannel(channelId: string | number, limit: number = 50): Promise<Message[]> {
     try {
       const result = await getPool().query<Message>(
         'SELECT * FROM messages WHERE channel_id = $1 ORDER BY created_at DESC LIMIT $2',
-        [channelId, limit]
+        [String(channelId), limit]
       );
       return result.rows;
     } catch (err) {
