@@ -148,12 +148,14 @@ export default function Signals({ authType }: SignalsProps) {
       return;
     }
 
-    // Клиенты загружаются только для админа
+    // Клиенты загружаются только для админа, затем сигналы
     if (authType === 'admin') {
       loadClients();
+    } else {
+      // Для клиента сразу загружаем сигналы
+      loadRecentSignals();
     }
-    loadRecentSignals();
-  }, [authType]);
+  }, []);
 
   const loadClients = async () => {
     try {
@@ -163,9 +165,10 @@ export default function Signals({ authType }: SignalsProps) {
       if (response.data.clients.length > 0 && !selectedClient) {
         setSelectedClient(response.data.clients[0].api_key);
       }
+      // После загрузки клиентов загружаем сигналы
+      loadRecentSignals();
     } catch (err) {
       console.error('Failed to load clients:', err);
-    } finally {
       setLoading(false);
     }
   };
@@ -187,6 +190,8 @@ export default function Signals({ authType }: SignalsProps) {
       }
     } catch (err) {
       console.error('Failed to load recent signals:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
