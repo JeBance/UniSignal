@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState, useEffect } from 'react';
 import { Container, Nav, Navbar, Alert, Spinner, Badge, Card, Form, Button } from 'react-bootstrap';
 import { useTheme } from './contexts/ThemeContext';
+import { useWebSocket } from './contexts/WebSocketContext';
 import Dashboard from './components/Dashboard';
 import Clients from './components/Clients';
 import Channels from './components/Channels';
@@ -13,6 +14,7 @@ type AuthType = 'admin' | 'client' | null;
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const { connect: connectWebSocket, disconnect: disconnectWebSocket, isConnected } = useWebSocket();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [authType, setAuthType] = useState<AuthType>(() => {
     return (localStorage.getItem('authType') as AuthType) || null;
@@ -82,6 +84,7 @@ function App() {
     setAuthKey('');
     setIsAuthenticated(false);
     setAuthError(null);
+    disconnectWebSocket();
   };
 
   const handleLogin = async () => {
@@ -102,28 +105,34 @@ function App() {
         localStorage.setItem('authKey', authKey);
         localStorage.setItem('adminKey', authKey);
         localStorage.removeItem('apiKey');
-        
+
         setAuthType('admin');
         setIsAuthenticated(true);
         setIsAuthenticating(false);
+        
+        // Подключаемся к WebSocket
+        connectWebSocket(authKey);
         return;
       }
-      
+
       const clientResponse = await fetch('/api/auth/validate', {
         headers: { 'X-API-Key': authKey }
       });
       const clientData = await clientResponse.json();
-      
+
       if (clientData.valid && clientData.role === 'client') {
         // Сохраняем ключи в localStorage СРАЗУ
         localStorage.setItem('authType', 'client');
         localStorage.setItem('authKey', authKey);
         localStorage.setItem('apiKey', authKey);
         localStorage.removeItem('adminKey');
-        
+
         setAuthType('client');
         setIsAuthenticated(true);
         setIsAuthenticating(false);
+        
+        // Подключаемся к WebSocket
+        connectWebSocket(authKey);
       } else {
         setAuthError('Неверный ключ. Проверьте правильность ввода.');
         setIsAuthenticating(false);
@@ -222,6 +231,21 @@ function App() {
                 >
                   {theme === 'dark' ? '☀️' : '🌙'}
                 </button>
+                <span
+                  className="me-3"
+                  title={isConnected ? 'WebSocket подключен' : 'WebSocket отключен'}
+                  style={{ cursor: 'default' }}
+                >
+                  <span
+                    className="d-inline-block rounded-circle"
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      backgroundColor: isConnected ? '#28a745' : '#dc3545',
+                      boxShadow: isConnected ? '0 0 8px #28a745' : '0 0 8px #dc3545'
+                    }}
+                  />
+                </span>
                 <Navbar.Text className="me-3">
                   {authType === 'admin' ? (
                     <>🔑 Админ <Badge bg="primary">Admin</Badge></>
