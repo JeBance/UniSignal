@@ -4,10 +4,12 @@ import { useToast } from '../contexts/ToastContext';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
 interface SignalsProps {
-  adminKey: string;
+  adminKey: string | null;
+  apiKey: string | null;
+  authType: 'admin' | 'client' | null;
 }
 
-export default function Signals({ adminKey }: SignalsProps) {
+export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
   const toast = useToast();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -143,13 +145,17 @@ export default function Signals({ adminKey }: SignalsProps) {
   }
 
   useEffect(() => {
-    if (!adminKey) {
+    if (!authType) {
       setLoading(false);
       return;
     }
-    loadClients();
+    
+    // Клиенты загружаются только для админа
+    if (authType === 'admin') {
+      loadClients();
+    }
     loadRecentSignals();
-  }, [adminKey]);
+  }, [authType, apiKey, adminKey]);
 
   const loadClients = async () => {
     try {
@@ -169,11 +175,16 @@ export default function Signals({ adminKey }: SignalsProps) {
   const loadRecentSignals = async () => {
     try {
       // Загружаем все сигналы (без ограничения)
-      const response = await fetch('/admin/signals?limit=100000', {
-        headers: {
-          'X-Admin-Key': adminKey,
-        },
-      });
+      const endpoint = authType === 'admin' ? '/admin/signals' : '/api/signals';
+      const headers: Record<string, string> = {};
+      
+      if (authType === 'admin' && adminKey) {
+        headers['X-Admin-Key'] = adminKey;
+      } else if (authType === 'client' && apiKey) {
+        headers['X-API-Key'] = apiKey;
+      }
+
+      const response = await fetch(`${endpoint}?limit=100000`, { headers });
 
       if (response.ok) {
         const data = await response.json();
@@ -192,7 +203,8 @@ export default function Signals({ adminKey }: SignalsProps) {
   };
 
   useEffect(() => {
-    if (!selectedClient || !adminKey) return;
+    // WebSocket подключается только если выбран клиент (для админа)
+    if (authType !== 'admin' || !selectedClient || !adminKey) return;
 
     // Подключаемся только если ещё не подключены и нет активного соединения
     if (!wsConnected && !wsRef.current) {
@@ -204,7 +216,7 @@ export default function Signals({ adminKey }: SignalsProps) {
     return () => {
       // Не закрываем соединение здесь, чтобы избежать лишних реконнектов
     };
-  }, [selectedClient, adminKey]);
+  }, [selectedClient, adminKey, authType]);
 
   const connectWebSocket = (apiKey: string) => {
     // Закрываем существующее соединение, если есть
@@ -528,7 +540,7 @@ export default function Signals({ adminKey }: SignalsProps) {
         </div>
       </div>
 
-      {clients.length === 0 ? (
+      {authType === 'admin' && clients.length === 0 ? (
         <Alert variant="warning">
           <Alert.Heading>Нет клиентов</Alert.Heading>
           <p>
@@ -536,7 +548,7 @@ export default function Signals({ adminKey }: SignalsProps) {
             Перейдите на вкладку <strong>👥 Клиенты</strong> и создайте нового клиента.
           </p>
         </Alert>
-      ) : (
+      ) : authType === 'admin' ? (
         <Card className="mb-4">
           <Card.Body>
             <Form>
@@ -557,6 +569,11 @@ export default function Signals({ adminKey }: SignalsProps) {
             </Form>
           </Card.Body>
         </Card>
+      ) : (
+        <Alert variant="info" className="mb-4">
+          <strong>👤 Режим клиента:</strong> Вы просматриваете сигналы в режиме только для чтения.
+          Для получения сигналов в реальном времени подключитесь к WebSocket с вашим API ключом.
+        </Alert>
       )}
 
       <Card>

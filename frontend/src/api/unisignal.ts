@@ -23,12 +23,19 @@ const api = axios.create({
   },
 });
 
-// Интерцептор для добавления admin key
+// Интерцептор для добавления ключей аутентификации
 api.interceptors.request.use((config) => {
   const adminKey = localStorage.getItem('adminKey');
-  if (adminKey && config.url?.startsWith('/admin')) {
+  const apiKey = localStorage.getItem('apiKey');
+  const authType = localStorage.getItem('authType');
+
+  // Добавляем соответствующий ключ в зависимости от типа аутентификации
+  if (authType === 'admin' && adminKey && config.url?.startsWith('/admin')) {
     config.headers['X-Admin-Key'] = adminKey;
+  } else if (authType === 'client' && apiKey && config.url?.startsWith('/api')) {
+    config.headers['X-API-Key'] = apiKey;
   }
+
   return config;
 });
 
@@ -54,6 +61,13 @@ export interface Client {
   api_key: string;
   is_active: boolean;
   created_at: string;
+}
+
+export interface AuthResult {
+  valid: boolean;
+  role?: 'admin' | 'client';
+  clientId?: string;
+  error?: string;
 }
 
 export interface Channel {
@@ -153,8 +167,18 @@ export const unisignalApi = {
   // Health check
   health: () => api.get('/health'),
 
-  // Stats
-  getStats: () => api.get<Stats>('/admin/stats'),
+  // Auth validation
+  validateAuth: () => api.get<AuthResult>('/api/auth/validate'),
+
+  // Stats (available for both admin and client)
+  getStats: () => api.get<Stats>('/api/stats'),
+
+  // Signals (available for both admin and client)
+  getSignals: (limit: number = 50) => api.get<{ signals: Signal[] }>(`/api/signals?limit=${limit}`),
+
+  // Admin-only endpoints
+  getAdminStats: () => api.get<Stats>('/admin/stats'),
+  getAdminSignals: (limit: number = 50) => api.get<{ signals: Signal[] }>(`/admin/signals?limit=${limit}`),
 
   // Clients
   getClients: () => api.get<{ clients: Client[] }>('/admin/clients'),

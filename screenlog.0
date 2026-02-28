@@ -27,3 +27,22 @@
 {"level":"info","time":"2026-02-28T07:35:32.160Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
 {"level":"info","time":"2026-02-28T07:36:32.160Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
 {"level":"info","time":"2026-02-28T07:37:32.171Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:38:32.175Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:39:04.647Z","pid":2242,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T07:39:04.766Z","pid":2242,"hostname":"xloyvpacdg","clientId":"2a720cb1-bb40-4c06-a182-fdb7aadca405","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T07:39:32.180Z","pid":2242,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:40:32.184Z","pid":2242,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:40:48.990Z","pid":2242,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T07:40:49.104Z","pid":2242,"hostname":"xloyvpacdg","clientId":"2a720cb1-bb40-4c06-a182-fdb7aadca405","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T07:41:32.189Z","pid":2242,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:42:32.191Z","pid":2242,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:42:36.328Z","pid":2242,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T07:42:36.429Z","pid":2242,"hostname":"xloyvpacdg","clientId":"2a720cb1-bb40-4c06-a182-fdb7aadca405","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T07:43:32.195Z","pid":2242,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:44:32.199Z","pid":2242,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:45:32.203Z","pid":2242,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:46:32.207Z","pid":2242,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:47:32.211Z","pid":2242,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:48:32.212Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:49:32.213Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T07:50:32.214Z","pid":2242,"hostname":"xloyvpacdg","clients":0,"buffer":0,"msg":"📊 Статистика"}

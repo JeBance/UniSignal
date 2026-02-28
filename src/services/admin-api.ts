@@ -14,9 +14,16 @@ export interface AdminApiConfig {
   port: number;
 }
 
+export interface AuthUser {
+  role: 'admin' | 'client';
+  clientId?: string;
+}
+
 /**
  * Admin HTTP API
- * Порт 8080, все эндпоинты требуют X-Admin-Key заголовок
+ * Порт 8080, все эндпоинты требуют аутентификации
+ * - Admin: ADMIN_MASTER_KEY (полный доступ)
+ * - Client: API ключ клиента (только просмотр Dashboard и Сигналы)
  */
 export class AdminApi {
   private app: express.Application;
@@ -74,13 +81,20 @@ export class AdminApi {
     // Public endpoints
     this.app.get('/health', this.healthCheck.bind(this));
 
+    // Auth validation endpoint
+    this.app.get('/api/auth/validate', this.validateAuth.bind(this));
+
+    // Public read-only API для клиентов
+    this.app.get('/api/stats', this.clientAuthMiddleware.bind(this), this.getStats.bind(this));
+    this.app.get('/api/signals', this.clientAuthMiddleware.bind(this), this.getSignals.bind(this));
+
     // UI - статические файлы frontend
     this.app.use('/ui', express.static(path.join(__dirname, '../../frontend/dist')));
     this.app.get('/ui/*', (_req: Request, res: Response) => {
       res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
     });
 
-    // Admin endpoints (требуют аутентификации)
+    // Admin endpoints (требуют ADMIN_MASTER_KEY)
     this.app.post('/admin/history/load', this.adminAuthMiddleware.bind(this), this.loadHistory.bind(this));
     this.app.delete('/admin/history/:chatId', this.adminAuthMiddleware.bind(this), this.clearHistory.bind(this));
     this.app.get('/admin/signals', this.adminAuthMiddleware.bind(this), this.getSignals.bind(this));
@@ -106,8 +120,8 @@ export class AdminApi {
     const adminKey = req.headers['x-admin-key'];
     const expectedKey = this.config.adminMasterKey;
 
-    logger.debug({ 
-      path: req.path, 
+    logger.debug({
+      path: req.path,
       providedKey: adminKey,
       expectedKey,
       match: adminKey === expectedKey
@@ -122,7 +136,50 @@ export class AdminApi {
       return;
     }
 
+    // Сохраняем информацию об пользователе для запроса
+    (res.locals as any).authUser = { role: 'admin' } as AuthUser;
     next();
+  }
+
+  /**
+   * Middleware для проверки API ключа клиента
+   * Клиенты могут только читать stats и signals
+   */
+  private clientAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
+    const apiKey = req.headers['x-api-key'];
+
+    logger.debug({
+      path: req.path,
+      hasKey: !!apiKey,
+      keyLength: apiKey?.length
+    }, 'Проверка X-API-Key');
+
+    if (!apiKey) {
+      logger.warn({ path: req.path }, 'Отсутствует X-API-Key');
+      res.status(401).json({ error: 'Unauthorized: Missing X-API-Key' });
+      return;
+    }
+
+    // Проверяем API ключ клиента
+    this.clientRepo.getByApiKey(apiKey.toString())
+      .then(client => {
+        if (!client || !client.is_active) {
+          logger.warn({ path: req.path, apiKey: apiKey.toString().substring(0, 8) }, 'Неверный X-API-Key');
+          res.status(401).json({ error: 'Unauthorized: Invalid X-API-Key' });
+          return;
+        }
+
+        // Сохраняем информацию об пользователе для запроса
+        (res.locals as any).authUser = {
+          role: 'client',
+          clientId: client.id
+        } as AuthUser;
+        next();
+      })
+      .catch(err => {
+        logger.error({ err }, 'Ошибка проверки X-API-Key');
+        res.status(500).json({ error: 'Internal server error' });
+      });
   }
 
   /**
@@ -131,7 +188,7 @@ export class AdminApi {
   private async healthCheck(_req: Request, res: Response): Promise<void> {
     try {
       const dbOk = await checkDatabaseConnection();
-      
+
       res.json({
         status: 'ok',
         service: 'UniSignal Relay',
@@ -147,6 +204,46 @@ export class AdminApi {
         error: 'Internal server error',
       });
     }
+  }
+
+  /**
+   * GET /api/auth/validate - Проверка ключа аутентификации
+   * Принимает X-Admin-Key (для админа) или X-API-Key (для клиента)
+   */
+  private async validateAuth(req: Request, res: Response): Promise<void> {
+    const adminKey = req.headers['x-admin-key'];
+    const apiKey = req.headers['x-api-key'];
+
+    // Проверяем админский ключ
+    if (adminKey && adminKey === this.config.adminMasterKey) {
+      res.json({
+        valid: true,
+        role: 'admin',
+      });
+      return;
+    }
+
+    // Проверяем клиентский ключ
+    if (apiKey) {
+      try {
+        const client = await this.clientRepo.getByApiKey(apiKey.toString());
+        if (client && client.is_active) {
+          res.json({
+            valid: true,
+            role: 'client',
+            clientId: client.id,
+          });
+          return;
+        }
+      } catch (err) {
+        logger.error({ err }, 'Ошибка проверки API ключа');
+      }
+    }
+
+    res.status(401).json({
+      valid: false,
+      error: 'Unauthorized',
+    });
   }
 
   /**

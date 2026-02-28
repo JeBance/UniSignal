@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState, useEffect } from 'react';
-import { Container, Nav, Navbar, Alert, Spinner, Button } from 'react-bootstrap';
+import { Container, Nav, Navbar, Alert, Spinner, Badge } from 'react-bootstrap';
 import { useTheme } from './contexts/ThemeContext';
 import Dashboard from './components/Dashboard';
 import Clients from './components/Clients';
@@ -9,11 +9,16 @@ import Signals from './components/Signals';
 import { unisignalApi } from './api/unisignal';
 
 type Page = 'dashboard' | 'clients' | 'channels' | 'signals';
+type AuthType = 'admin' | 'client' | null;
 
 function App() {
   const { theme, toggleTheme } = useTheme();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [authType, setAuthType] = useState<AuthType>(() => {
+    return (localStorage.getItem('authType') as AuthType) || null;
+  });
   const [adminKey, setAdminKey] = useState(() => localStorage.getItem('adminKey') || '');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [healthOk, setHealthOk] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,18 +48,65 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Проверка валидности ключа при загрузке
   useEffect(() => {
-    if (adminKey) {
+    if (!authType) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    const validateKey = async () => {
+      try {
+        const response = await unisignalApi.validateAuth();
+        if (response.data.valid) {
+          setIsAuthenticated(true);
+          // Обновляем тип аутентификации если изменился
+          if (response.data.role && response.data.role !== authType) {
+            setAuthType(response.data.role);
+          }
+        } else {
+          // Ключ невалиден - сбрасываем аутентификацию
+          handleLogout();
+        }
+      } catch (err) {
+        console.error('Auth validation error:', err);
+        // При ошибке валидации не сбрасываем, даём пользователю работать
+        setIsAuthenticated(true);
+      }
+    };
+
+    validateKey();
+  }, [authType]);
+
+  useEffect(() => {
+    if (authType === 'admin' && adminKey) {
+      localStorage.setItem('authType', 'admin');
       localStorage.setItem('adminKey', adminKey);
+      localStorage.removeItem('apiKey');
+      setIsAuthenticated(true);
+    } else if (authType === 'client' && apiKey) {
+      localStorage.setItem('authType', 'client');
+      localStorage.setItem('apiKey', apiKey);
+      localStorage.removeItem('adminKey');
       setIsAuthenticated(true);
     }
-  }, [adminKey]);
+  }, [authType, adminKey, apiKey]);
 
   const handleLogout = () => {
+    localStorage.removeItem('authType');
     localStorage.removeItem('adminKey');
+    localStorage.removeItem('apiKey');
+    setAuthType(null);
     setAdminKey('');
+    setApiKey('');
     setIsAuthenticated(false);
   };
+
+  const handleLogin = (type: 'admin' | 'client') => {
+    setAuthType(type);
+  };
+
+  const canAccessAdminOnly = authType === 'admin';
 
   if (loading) {
     return (
@@ -115,33 +167,39 @@ function App() {
               >
                 📡 Сигналы
               </Nav.Link>
-              <Nav.Link
-                active={currentPage === 'clients'}
-                onClick={() => setCurrentPage('clients')}
-              >
-                👥 Клиенты
-              </Nav.Link>
-              <Nav.Link
-                active={currentPage === 'channels'}
-                onClick={() => setCurrentPage('channels')}
-              >
-                📺 Каналы
-              </Nav.Link>
+              {canAccessAdminOnly && (
+                <>
+                  <Nav.Link
+                    active={currentPage === 'clients'}
+                    onClick={() => setCurrentPage('clients')}
+                  >
+                    👥 Клиенты
+                  </Nav.Link>
+                  <Nav.Link
+                    active={currentPage === 'channels'}
+                    onClick={() => setCurrentPage('channels')}
+                  >
+                    📺 Каналы
+                  </Nav.Link>
+                </>
+              )}
             </Nav>
             <Nav className="align-items-center">
-              <Button
-                variant="outline-light"
-                size="sm"
+              <button
+                className="btn btn-outline-light btn-sm me-3"
                 onClick={toggleTheme}
-                className="me-3"
                 title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
               >
                 {theme === 'dark' ? '☀️' : '🌙'}
-              </Button>
+              </button>
               {isAuthenticated ? (
                 <>
                   <Navbar.Text className="me-3">
-                    🔑 Админ авторизован
+                    {authType === 'admin' ? (
+                      <>🔑 Админ <Badge bg="primary">Admin</Badge></>
+                    ) : (
+                      <>👤 Гость <Badge bg="info">Client</Badge></>
+                    )}
                   </Navbar.Text>
                   <Nav.Link onClick={handleLogout}>Выйти</Nav.Link>
                 </>
@@ -157,28 +215,99 @@ function App() {
 
       <Container>
         {!isAuthenticated && (
-          <Alert variant="warning" onClose={() => setCurrentPage('dashboard')} dismissible>
+          <Alert variant="warning" className="mb-4">
             <Alert.Heading>Требуется авторизация</Alert.Heading>
             <p>
-              Для доступа к админ-панели введите мастер-ключ в поле ниже.
+              Выберите тип авторизации:
             </p>
+            
             <div className="mt-3">
-              <input
-                type="password"
-                className="form-control"
-                placeholder="Введите ADMIN_MASTER_KEY"
-                value={adminKey}
-                onChange={(e) => setAdminKey(e.target.value)}
-                style={{ maxWidth: '400px' }}
-              />
+              <Nav variant="pills" defaultActiveKey="#admin" className="mb-3">
+                <Nav.Item>
+                  <Nav.Link 
+                    href="#admin"
+                    active={authType === 'admin'}
+                    onClick={(e) => { e.preventDefault(); setAuthType('admin'); }}
+                  >
+                    🔑 Админ
+                  </Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link 
+                    href="#client"
+                    active={authType === 'client'}
+                    onClick={(e) => { e.preventDefault(); setAuthType('client'); }}
+                  >
+                    👤 Клиент
+                  </Nav.Link>
+                </Nav.Item>
+              </Nav>
+
+              {authType === 'admin' ? (
+                <div>
+                  <p>Введите мастер-ключ для доступа к админ-панели:</p>
+                  <input
+                    type="password"
+                    className="form-control"
+                    placeholder="ADMIN_MASTER_KEY"
+                    value={adminKey}
+                    onChange={(e) => setAdminKey(e.target.value)}
+                    style={{ maxWidth: '400px' }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLogin('admin')}
+                  />
+                  <button
+                    className="btn btn-primary mt-2"
+                    onClick={() => handleLogin('admin')}
+                    disabled={!adminKey}
+                  >
+                    Войти как админ
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p>Введите API ключ клиента для просмотра сигналов:</p>
+                  <input
+                    type="password"
+                    className="form-control"
+                    placeholder="API_KEY"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    style={{ maxWidth: '400px' }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLogin('client')}
+                  />
+                  <button
+                    className="btn btn-info mt-2 text-white"
+                    onClick={() => handleLogin('client')}
+                    disabled={!apiKey}
+                  >
+                    Войти как клиент
+                  </button>
+                </div>
+              )}
             </div>
           </Alert>
         )}
 
-        {currentPage === 'dashboard' && <Dashboard adminKey={adminKey} />}
-        {currentPage === 'clients' && <Clients adminKey={adminKey} />}
-        {currentPage === 'channels' && <Channels adminKey={adminKey} />}
-        {currentPage === 'signals' && <Signals adminKey={adminKey} />}
+        {currentPage === 'dashboard' && (
+          <Dashboard 
+            adminKey={authType === 'admin' ? adminKey : null}
+            apiKey={authType === 'client' ? apiKey : null}
+            authType={authType}
+          />
+        )}
+        {currentPage === 'clients' && canAccessAdminOnly && (
+          <Clients adminKey={adminKey} />
+        )}
+        {currentPage === 'channels' && canAccessAdminOnly && (
+          <Channels adminKey={adminKey} />
+        )}
+        {currentPage === 'signals' && (
+          <Signals 
+            adminKey={authType === 'admin' ? adminKey : null}
+            apiKey={authType === 'client' ? apiKey : null}
+            authType={authType}
+          />
+        )}
       </Container>
     </>
   );
