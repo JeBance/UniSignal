@@ -142,32 +142,42 @@ export default function Signals({ adminKey }: SignalsProps) {
         const exists = prev.some(s => s.id === lastMessage.id);
         if (exists) return prev;
 
+        const newSignal = lastMessage;
+        
         // Добавляем новый сигнал в начало списка
         toast.success(`📡 Новый сигнал добавлен в таблицу`);
         
         // Открываем модальное окно для нового сигнала
-        setSelectedSignal(lastMessage);
+        setSelectedSignal(newSignal);
         setShowModal(true);
         
-        // Подгружаем полную информацию с сервера
-        fetch(`/admin/signals?limit=1`, {
+        // Подгружаем полную информацию с сервера для ЭТОГО сигнала
+        // Загружаем последние 50 сигналов, чтобы найти наш
+        fetch(`/admin/signals?limit=50`, {
           headers: { 'X-Admin-Key': adminKey }
         })
           .then(r => r.json())
           .then(data => {
-            const serverSignal = data.signals?.[0];
-            if (serverSignal && serverSignal.id === lastMessage.id) {
+            const signals: any[] = data.signals || [];
+            // Находим наш сигнал в списке
+            const fullSignal = signals.find((s: any) => s.id === newSignal.id);
+            if (fullSignal) {
               // Обновляем сигнал в таблице полной версией
               setSignals(prev => prev.map(s => 
-                s.id === lastMessage.id ? { ...s, ...serverSignal } : s
+                s.id === newSignal.id ? { ...s, ...fullSignal } : s
               ));
-              // Обновляем выбранный сигнал для модального окна
-              setSelectedSignal(serverSignal);
+              // Обновляем выбранный сигнал для модального окна, только если оно ещё открыто для этого сигнала
+              setSelectedSignal(prev => {
+                if (prev?.id === newSignal.id) {
+                  return fullSignal;
+                }
+                return prev;
+              });
             }
           })
           .catch(err => console.error('Failed to load full signal:', err));
         
-        return [lastMessage, ...prev];
+        return [newSignal, ...prev];
       });
     }
   }, [lastMessage]);
