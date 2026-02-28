@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useToast } from '../contexts/ToastContext';
-import { getAllSignals, saveSignals, getLastSignalTimestamp, clearSignals as clearSignalsDB } from '../services/signals-db';
+import { getAllSignals, saveSignals, getLastSignalTimestamp } from '../services/signals-db';
 import { type Signal } from '../api/unisignal';
 
 interface SignalsProps {
@@ -16,7 +16,6 @@ export default function Signals({ authType }: SignalsProps) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -226,14 +225,6 @@ export default function Signals({ authType }: SignalsProps) {
     }
   };
 
-  const clearSignals = async () => {
-    // Очищаем IndexedDB
-    await clearSignalsDB();
-    // Очищаем состояние React
-    setSignals([]);
-    toast.success('🗑️ Все сигналы удалены из базы данных');
-  };
-
   // Получение уникальных значений для фильтров
   const uniqueChannels = Array.from(new Set(signals.map(s => s.channel))).sort();
   const uniqueSignalTypes = Array.from(new Set(signals
@@ -411,9 +402,6 @@ export default function Signals({ authType }: SignalsProps) {
           <span className={`badge ${isConnected ? 'bg-success' : 'bg-danger'} me-2`}>
             {isConnected ? '● Подключено' : '○ Отключено'}
           </span>
-          <Button variant="outline-danger" size="sm" onClick={() => setShowClearConfirm(true)}>
-            🗑️ Очистить БД
-          </Button>
         </div>
       </div>
 
@@ -485,9 +473,6 @@ export default function Signals({ authType }: SignalsProps) {
             </Dropdown>
             <Button variant="outline-warning" size="sm" onClick={resetFilters}>
               🔄 Сброс
-            </Button>
-            <Button variant="outline-danger" size="sm" onClick={() => setShowClearConfirm(true)}>
-              🗑️ Очистить БД
             </Button>
           </div>
         </Card.Header>
@@ -964,31 +949,6 @@ export default function Signals({ authType }: SignalsProps) {
           </Modal.Footer>
         </Modal>
       )}
-
-      {/* Clear Confirmation Modal */}
-      <Modal show={showClearConfirm} onHide={() => setShowClearConfirm(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>🗑️ Подтверждение очистки</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Вы уверены, что хотите удалить <strong>все сигналы</strong> из базы данных?</p>
-          <p className="text-danger">Это действие нельзя отменить!</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowClearConfirm(false)}>
-            Отмена
-          </Button>
-          <Button 
-            variant="danger" 
-            onClick={() => {
-              clearSignals();
-              setShowClearConfirm(false);
-            }}
-          >
-            🗑️ Удалить всё
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </>
   );
 }
