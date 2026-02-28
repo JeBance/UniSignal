@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Table, Spinner, Alert, Modal, Form, Badge, ProgressBar } from 'react-bootstrap';
 import { unisignalApi, type Channel } from '../api/unisignal';
+import { clearSignals as clearSignalsDB, saveSignals, signalToDB } from '../services/signals-db';
 
 interface ChannelsProps {
   adminKey: string;
@@ -103,6 +104,20 @@ export default function Channels({ adminKey }: ChannelsProps) {
       const result = await response.json();
 
       if (response.ok) {
+        // Загружаем обновлённые сигналы с сервера и сохраняем в IndexedDB
+        const signalsResponse = await fetch('/admin/signals?limit=100000', {
+          headers: { 'X-Admin-Key': adminKey }
+        });
+        
+        if (signalsResponse.ok) {
+          const signalsData = await signalsResponse.json();
+          const allSignals = signalsData.signals || [];
+          
+          // Сохраняем все сигналы в IndexedDB
+          const dbFormat = allSignals.map((s: any) => signalToDB(s));
+          await saveSignals(dbFormat);
+        }
+
         setHistoryProgress({
           loaded: result.loaded || 0,
           saved: result.saved || 0,
@@ -157,10 +172,13 @@ export default function Channels({ adminKey }: ChannelsProps) {
       const result = await response.json();
 
       if (response.ok) {
+        // Очищаем IndexedDB
+        await clearSignalsDB();
+        
         alert(`✅ Удалено ${result.deleted} сообщений из канала "${channel.name}"`);
-        // Обновляем статистику на Dashboard
-        window.location.href = '/ui/#/dashboard';
-        setTimeout(() => { window.location.href = '/ui/#/channels'; }, 1000);
+        
+        // Перезагружаем страницу для обновления данных
+        window.location.reload();
       } else {
         setError(result.error || 'Ошибка очистки истории');
       }
