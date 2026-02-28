@@ -236,3 +236,58 @@ export function signalToDB(signal: any): SignalDB {
     createdAt: Date.now(),
   };
 }
+
+// Удаление базы данных (полное)
+export async function deleteDatabase(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => {
+      db = null;
+      resolve();
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Получение статистики базы данных
+export async function getDBStats(): Promise<{ count: number; oldest?: number; newest?: number }> {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([SIGNALS_STORE], 'readonly');
+    const store = transaction.objectStore(SIGNALS_STORE);
+    const countRequest = store.count();
+    const firstRequest = store.openCursor(null, 'next');
+    const lastRequest = store.openCursor(null, 'prev');
+
+    let oldest: number | undefined;
+    let newest: number | undefined;
+
+    firstRequest.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) oldest = cursor.value.timestamp;
+    };
+
+    lastRequest.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) newest = cursor.value.timestamp;
+    };
+
+    countRequest.onsuccess = () => {
+      resolve({
+        count: countRequest.result,
+        oldest,
+        newest,
+      });
+    };
+
+    transaction.oncomplete = () => {
+      resolve({
+        count: countRequest.result,
+        oldest,
+        newest,
+      });
+    };
+
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
