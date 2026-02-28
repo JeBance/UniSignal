@@ -24,6 +24,30 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const apiKeyRef = useRef<string>('');
   const shownSignalIdsRef = useRef<Set<number>>(new Set());
 
+  // Загружаем показанные ID из sessionStorage при старте
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('shownSignalIds');
+      if (saved) {
+        const ids = JSON.parse(saved);
+        ids.forEach((id: number) => shownSignalIdsRef.current.add(id));
+        console.log('Loaded shownSignalIds from sessionStorage:', shownSignalIdsRef.current.size);
+      }
+    } catch (err) {
+      console.error('Failed to load shownSignalIds:', err);
+    }
+  }, []);
+
+  // Сохраняем показанные ID в sessionStorage при изменении
+  useEffect(() => {
+    try {
+      const ids = Array.from(shownSignalIdsRef.current);
+      sessionStorage.setItem('shownSignalIds', JSON.stringify(ids));
+    } catch (err) {
+      console.error('Failed to save shownSignalIds:', err);
+    }
+  }, [lastMessage]);
+
   const setOnSignalClick = (callback: ((signal: any) => void) | undefined) => {
     onSignalClickRef.current = callback;
   };
