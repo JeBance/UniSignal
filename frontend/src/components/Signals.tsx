@@ -126,6 +126,21 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [itemsPerPage] = useState(20); // Количество сигналов на странице
 
   const wsRef = useRef<WebSocket | null>(null);
+  const wsReady = useRef<boolean>(false);
+
+  // Загружаем ID последних сигналов из localStorage при инициализации
+  const loadedSignalIds = useRef<Set<number>>(new Set<number>());
+  
+  // Инициализация loadedSignalIds при первом рендере
+  if (loadedSignalIds.current.size === 0) {
+    try {
+      const saved = localStorage.getItem('loadedSignalIds');
+      const ids = saved ? JSON.parse(saved) : [];
+      loadedSignalIds.current = new Set(ids);
+    } catch {
+      loadedSignalIds.current = new Set();
+    }
+  }
 
   useEffect(() => {
     if (!adminKey) {
@@ -167,6 +182,9 @@ export default function Signals({ adminKey }: SignalsProps) {
           channel: s.channel || 'Unknown',
         }));
         setSignals(formattedSignals);
+
+        // Сохраняем ID загруженных сигналов, чтобы не показывать уведомления для них
+        formattedSignals.forEach((s: { id: number }) => loadedSignalIds.current.add(s.id));
       }
     } catch (err) {
       console.error('Failed to load recent signals:', err);
@@ -209,6 +227,7 @@ export default function Signals({ adminKey }: SignalsProps) {
         if (originalOnopen) originalOnopen.call(ws, event);
         console.log('WebSocket connected');
         setWsConnected(true);
+        wsReady.current = true; // WebSocket готов к получению новых сигналов
         toast.success('✅ Подключено к WebSocket');
       };
 
@@ -240,11 +259,24 @@ export default function Signals({ adminKey }: SignalsProps) {
               const exists = prev.some(s => s.id === signalId);
               if (exists) return prev;
 
-              // Показываем уведомление о новом сигнале
-              const ticker = signalData.signal?.instrument?.ticker || signalData.ticker || '';
-              const direction = signalData.signal?.direction?.side?.toUpperCase() || signalData.direction || '';
-              const message = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
-              toast.success(message);
+              // Показываем уведомление только если:
+              // 1. WebSocket готов (после подключения)
+              // 2. Это действительно новый сигнал (не из начальной загрузки)
+              const isNewSignal = wsReady.current && !loadedSignalIds.current.has(signalId);
+              
+              if (isNewSignal) {
+                const ticker = signalData.signal?.instrument?.ticker || signalData.ticker || '';
+                const direction = signalData.signal?.direction?.side?.toUpperCase() || signalData.direction || '';
+                const message = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
+                toast.success(message);
+              }
+
+              // Добавляем ID в множество загруженных
+              loadedSignalIds.current.add(signalId);
+              
+              // Сохраняем в localStorage сразу
+              const ids = Array.from(loadedSignalIds.current).slice(-1000);
+              localStorage.setItem('loadedSignalIds', JSON.stringify(ids));
 
               // Преобразуем payload формат в data формат если нужно
               const formattedSignal = signalData.id
@@ -273,6 +305,7 @@ export default function Signals({ adminKey }: SignalsProps) {
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
         setWsConnected(false);
+        wsReady.current = false; // WebSocket больше не готов
         toast.error(`❌ Отключено: ${event.reason || 'Неизвестная ошибка'}`);
 
         // Очищаем ссылку только если это текущее соединение
