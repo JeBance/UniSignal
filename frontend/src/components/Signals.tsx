@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useToast } from '../contexts/ToastContext';
-import { unisignalApi, type Signal, type Client } from '../api/unisignal';
+import { unisignalApi, type Signal } from '../api/unisignal';
 import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB } from '../services/signals-db';
 
 interface SignalsProps {
@@ -11,12 +11,10 @@ interface SignalsProps {
 export default function Signals({ adminKey }: SignalsProps) {
   const toast = useToast();
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState('');
-  const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -127,27 +125,36 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [itemsPerPage] = useState(20); // Количество сигналов на странице
 
   const wsRef = useRef<WebSocket | null>(null);
+  const apiKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!adminKey) {
       setLoading(false);
       return;
     }
-    loadClients();
     loadRecentSignals();
+    ensureClientAndConnect();
   }, [adminKey]);
 
-  const loadClients = async () => {
+  // Проверка наличия клиентов и подключение
+  const ensureClientAndConnect = async () => {
     try {
       const response = await unisignalApi.getClients();
-      setClients(response.data.clients);
-      // Устанавливаем первого клиента только если ещё не выбран
-      if (response.data.clients.length > 0 && !selectedClient) {
-        setSelectedClient(response.data.clients[0].api_key);
+      const clients = response.data.clients;
+      
+      if (clients.length === 0) {
+        // Нет клиентов - создаём первого автоматически для админа
+        console.log('No clients found, creating first client automatically...');
+        const createResponse = await unisignalApi.createClient();
+        const newClient = createResponse.data;
+        console.log('Created new client:', newClient.id);
+        connectWebSocket(newClient.api_key);
+      } else {
+        // Подключаемся с первым клиентом
+        connectWebSocket(clients[0].api_key);
       }
     } catch (err) {
-      console.error('Failed to load clients:', err);
-    } finally {
+      console.error('Failed to ensure client:', err);
       setLoading(false);
     }
   };
@@ -229,22 +236,12 @@ export default function Signals({ adminKey }: SignalsProps) {
     }
   };
 
-  useEffect(() => {
-    if (!selectedClient || !adminKey) return;
-
-    // Подключаемся только если ещё не подключены и нет активного соединения
-    if (!wsConnected && !wsRef.current) {
-      console.log('Connecting to WebSocket...');
-      connectWebSocket(selectedClient);
-    }
-
-    // Cleanup при размонтировании или смене клиента
-    return () => {
-      // Не закрываем соединение здесь, чтобы избежать лишних реконнектов
-    };
-  }, [selectedClient, adminKey]);
+  // WebSocket подключение выполняется в ensureClientAndConnect()
 
   const connectWebSocket = (apiKey: string) => {
+    // Сохраняем apiKey для переподключения
+    apiKeyRef.current = apiKey;
+    
     // Закрываем существующее соединение, если есть
     if (wsRef.current) {
       if (wsRef.current.readyState === WebSocket.OPEN ||
@@ -344,9 +341,9 @@ export default function Signals({ adminKey }: SignalsProps) {
 
         // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
-          if (selectedClient && adminKey && !wsRef.current) {
+          if (apiKeyRef.current && adminKey && !wsRef.current) {
             console.log('Reconnecting...');
-            connectWebSocket(selectedClient);
+            connectWebSocket(apiKeyRef.current);
           }
         }, 5000);
       };
@@ -538,49 +535,11 @@ export default function Signals({ adminKey }: SignalsProps) {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>📡 Живые сигналы</h2>
         <div>
-          <Button
-            variant={wsConnected ? 'success' : 'danger'}
-            disabled
-            className="me-2"
-          >
+          <span className={`badge ${wsConnected ? 'bg-success' : 'bg-danger'} me-2`}>
             {wsConnected ? '● Подключено' : '○ Отключено'}
-          </Button>
-          <Button variant="outline-secondary" onClick={clearSignals}>
-            Очистить
-          </Button>
+          </span>
         </div>
       </div>
-
-      {clients.length === 0 ? (
-        <Alert variant="warning">
-          <Alert.Heading>Нет клиентов</Alert.Heading>
-          <p>
-            Для подключения к WebSocket необходимо создать клиента.
-            Перейдите на вкладку <strong>👥 Клиенты</strong> и создайте нового клиента.
-          </p>
-        </Alert>
-      ) : (
-        <Card className="mb-4">
-          <Card.Body>
-            <Form>
-              <Form.Group>
-                <Form.Label>Выберите клиента для подключения</Form.Label>
-                <Form.Select
-                  value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
-                  style={{ maxWidth: '500px' }}
-                >
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.api_key}>
-                      {client.id.slice(0, 8)}... - {client.api_key}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Form>
-          </Card.Body>
-        </Card>
-      )}
 
       <Card>
         <Card.Header className="d-flex justify-content-between align-items-center mb-3">
