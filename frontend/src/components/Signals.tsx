@@ -7,9 +7,11 @@ import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB, deleteD
 
 interface SignalsProps {
   adminKey: string;
+  apiKey?: string;
+  authType?: 'admin' | 'client';
 }
 
-export default function Signals({ adminKey }: SignalsProps) {
+export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
   const toast = useToast();
   const { isConnected, lastMessage } = useWebSocket();
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -18,6 +20,11 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const lastProcessedSignalId = useRef<number | null>(null);
+
+  // Определяем ключ и эндпоинт в зависимости от типа аутентификации
+  const authKey = authType === 'admin' ? adminKey : apiKey;
+  const signalsEndpoint = authType === 'admin' ? '/admin/signals' : '/api/signals';
+  const authHeader = authType === 'admin' ? 'X-Admin-Key' : 'X-API-Key';
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -193,8 +200,10 @@ export default function Signals({ adminKey }: SignalsProps) {
         // Оно откроется при клике на уведомление через onSignalClick
         
         // Подгружаем полную информацию с сервера для ЭТОГО сигнала
-        fetch(`/admin/signals?limit=50`, {
-          headers: { 'X-Admin-Key': adminKey }
+        fetch(`${signalsEndpoint}?limit=50`, {
+          headers: {
+            [authHeader]: authKey || ''
+          }
         })
           .then(r => r.json())
           .then(data => {
@@ -243,20 +252,20 @@ export default function Signals({ adminKey }: SignalsProps) {
       } else {
         // Если IndexedDB пуст, загружаем ВСЕ сигналы из API
         console.log('IndexedDB is empty, loading ALL signals from API...');
-        const response = await fetch('/admin/signals?limit=100000', {
+        const response = await fetch(`${signalsEndpoint}?limit=100000`, {
           headers: {
-            'X-Admin-Key': adminKey,
+            [authHeader]: authKey || '',
           },
         });
 
         if (response.ok) {
           const data = await response.json();
           const apiSignals = data.signals || [];
-          
+
           // Сохраняем ВСЕ сигналы в IndexedDB для будущего использования
           const dbFormat = apiSignals.map((s: any) => signalToDB(s));
           await saveSignals(dbFormat);
-          
+
           setSignals(apiSignals);
           console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
         }
@@ -273,21 +282,21 @@ export default function Signals({ adminKey }: SignalsProps) {
     try {
       // Получаем последний timestamp из IndexedDB
       const lastTimestamp = await getLastSignalTimestamp();
-      
+
       if (lastTimestamp > 0) {
         console.log(`Checking for signals after ${new Date(lastTimestamp * 1000).toISOString()}`);
-        
+
         // Запрашиваем только пропущенные сигналы через параметр since
-        const response = await fetch(`/admin/signals?limit=100000&since=${lastTimestamp}`, {
+        const response = await fetch(`${signalsEndpoint}?limit=100000&since=${lastTimestamp}`, {
           headers: {
-            'X-Admin-Key': adminKey,
+            [authHeader]: authKey || '',
           },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const newSignals = data.signals || [];
-          
+
           if (newSignals.length > 0) {
             console.log(`Found ${newSignals.length} new signals`);
             

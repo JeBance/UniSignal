@@ -373,7 +373,11 @@ function App() {
               <Channels adminKey={authKey} />
             )}
             {currentPage === 'signals' && (
-              <Signals adminKey={authKey} />
+              <Signals 
+                adminKey={authKey} 
+                apiKey={authType === 'client' ? authKey : undefined}
+                authType={authType || undefined}
+              />
             )}
           </>
         )}
