@@ -30,9 +30,9 @@ api.interceptors.request.use((config) => {
   const authType = localStorage.getItem('authType');
 
   // Добавляем соответствующий ключ в зависимости от типа аутентификации
-  if (authType === 'admin' && adminKey && config.url?.startsWith('/admin')) {
+  if (authType === 'admin' && adminKey) {
     config.headers['X-Admin-Key'] = adminKey;
-  } else if (authType === 'client' && apiKey && config.url?.startsWith('/api')) {
+  } else if (authType === 'client' && apiKey) {
     config.headers['X-API-Key'] = apiKey;
   }
 

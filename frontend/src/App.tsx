@@ -286,9 +286,6 @@ function App() {
                   </div>
                 </Form>
               </Card.Body>
-              <Card.Footer className="text-center text-muted small">
-                Система автоматически определит тип ключа
-              </Card.Footer>
             </Card>
           </div>
         ) : (
