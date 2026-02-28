@@ -141,9 +141,14 @@ export default function Signals({ adminKey }: SignalsProps) {
       setSignals(prev => {
         const exists = prev.some(s => s.id === lastMessage.id);
         if (exists) return prev;
-        
+
         // Добавляем новый сигнал в начало списка
         toast.success(`📡 Новый сигнал добавлен в таблицу`);
+        
+        // Открываем модальное окно для нового сигнала
+        setSelectedSignal(lastMessage);
+        setShowModal(true);
+        
         return [lastMessage, ...prev];
       });
     }

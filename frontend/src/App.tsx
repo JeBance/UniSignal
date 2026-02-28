@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState, useEffect } from 'react';
-import { Container, Nav, Navbar, Alert, Spinner, Badge, Card, Form, Button, Modal } from 'react-bootstrap';
+import { Container, Nav, Navbar, Alert, Spinner, Badge, Card, Form, Button } from 'react-bootstrap';
 import { useTheme } from './contexts/ThemeContext';
 import { useWebSocket } from './contexts/WebSocketContext';
 import { useToast } from './contexts/ToastContext';
@@ -28,8 +28,6 @@ function App() {
   const [serverResponseTime, setServerResponseTime] = useState<number | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [selectedSignalForModal, setSelectedSignalForModal] = useState<any | null>(null);
-  const [showSignalModal, setShowSignalModal] = useState(false);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -55,10 +53,10 @@ function App() {
   // Установка обработчика клика на сигнал — СРАЗУ при монтировании
   useEffect(() => {
     const handleSignalClick = (signal: any) => {
-      console.log('Signal clicked:', signal.id);
-      setSelectedSignalForModal(signal);
-      setShowSignalModal(true);
+      console.log('Signal clicked, navigating to signals page:', signal.id);
+      // Просто переключаемся на вкладку сигналов
       setCurrentPage('signals');
+      // Сигнал уже есть в таблице (добавлен через WebSocket), пользователь увидит его
     };
 
     console.log('Setting onSignalClick handler on mount');
@@ -380,30 +378,6 @@ function App() {
           </>
         )}
       </Container>
-
-      {/* Signal Detail Modal */}
-      {selectedSignalForModal && (
-        <Modal show={showSignalModal} onHide={() => setShowSignalModal(false)} size="xl">
-          <Modal.Header closeButton>
-            <Modal.Title>📡 Сигнал #{selectedSignalForModal.id}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <h6>📥 Исходный текст:</h6>
-            <pre className="bg-light p-3 rounded small">{selectedSignalForModal.text}</pre>
-            {selectedSignalForModal.parsedSignal && (
-              <>
-                <h6 className="mt-4">🧠 Распарсенный сигнал:</h6>
-                <pre className="bg-light p-3 rounded small">{JSON.stringify(selectedSignalForModal.parsedSignal, null, 2)}</pre>
-              </>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowSignalModal(false)}>
-              Закрыть
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      )}
     </>
   );
 }
