@@ -3,12 +3,10 @@ import { Card, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
 import { unisignalApi, type Stats } from '../api/unisignal';
 
 interface DashboardProps {
-  adminKey: string | null;
-  apiKey: string | null;
   authType: 'admin' | 'client' | null;
 }
 
-export default function Dashboard({ adminKey, apiKey, authType }: DashboardProps) {
+export default function Dashboard({ authType }: DashboardProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,9 +18,9 @@ export default function Dashboard({ adminKey, apiKey, authType }: DashboardProps
     }
 
     loadStats();
-    const interval = setInterval(loadStats, 30000); // Обновление каждые 30 секунд
+    const interval = setInterval(loadStats, 30000);
     return () => clearInterval(interval);
-  }, [authType, apiKey, adminKey]);
+  }, []);
 
   const loadStats = async () => {
     try {
@@ -41,7 +39,7 @@ export default function Dashboard({ adminKey, apiKey, authType }: DashboardProps
   if (!authType) {
     return (
       <Alert variant="info">
-        Выберите тип авторизации и войдите для просмотра статистики
+        Войдите для просмотра статистики
       </Alert>
     );
   }

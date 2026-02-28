@@ -291,11 +291,7 @@ function App() {
         ) : (
           <>
             {currentPage === 'dashboard' && (
-              <Dashboard 
-                adminKey={authType === 'admin' ? authKey : null}
-                apiKey={authType === 'client' ? authKey : null}
-                authType={authType}
-              />
+              <Dashboard authType={authType} />
             )}
             {currentPage === 'clients' && canAccessAdminOnly && (
               <Clients adminKey={authKey} />
