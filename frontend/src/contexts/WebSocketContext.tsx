@@ -8,6 +8,8 @@ interface WebSocketContextType {
   lastMessage: any | null;
   connect: (apiKey: string) => void;
   disconnect: () => void;
+  onSignalClick: ((signal: any) => void) | undefined;
+  setOnSignalClick: React.Dispatch<React.SetStateAction<((signal: any) => void) | undefined>>;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -18,6 +20,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastMessage, setLastMessage] = useState<any | null>(null);
+  const [onSignalClick, setOnSignalClick] = useState<((signal: any) => void) | undefined>(undefined);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const apiKeyRef = useRef<string>('');
 
@@ -83,10 +86,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             // Обновляем lastMessage для реактивности
             setLastMessage(formattedSignal);
 
-            // Показываем уведомление
+            // Показываем уведомление с возможностью клика
             const ticker = formattedSignal.parsedSignal?.signal?.instrument?.ticker || formattedSignal.ticker || '';
             const direction = formattedSignal.parsedSignal?.signal?.direction?.side?.toUpperCase() || formattedSignal.direction || '';
-            toast.success(`📡 Новый сигнал: ${direction} ${ticker}`.trim());
+            const messageText = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
+            
+            toast.success(messageText, {
+              onClick: () => {
+                onSignalClick?.(formattedSignal);
+              },
+              style: { cursor: 'pointer' }
+            });
           }
         }
       } catch (err) {
@@ -146,7 +156,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, [disconnect]);
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, isConnecting, lastMessage, connect, disconnect }}>
+    <WebSocketContext.Provider value={{ isConnected, isConnecting, lastMessage, connect, disconnect, onSignalClick, setOnSignalClick }}>
       {children}
     </WebSocketContext.Provider>
   );

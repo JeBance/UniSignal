@@ -2,11 +2,15 @@ import { createContext, useContext, useCallback, type ReactNode } from 'react';
 import { toast, ToastContainer, type ToastOptions } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+interface ToastOptionsWithClick extends ToastOptions {
+  onClick?: () => void;
+}
+
 interface ToastContextType {
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
-  warning: (message: string) => void;
+  success: (message: string, options?: ToastOptionsWithClick) => void;
+  error: (message: string, options?: ToastOptionsWithClick) => void;
+  info: (message: string, options?: ToastOptionsWithClick) => void;
+  warning: (message: string, options?: ToastOptionsWithClick) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -21,20 +25,20 @@ const defaultOptions: ToastOptions = {
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const success = useCallback((message: string) => {
-    toast.success(message, { ...defaultOptions, className: 'toast-success' });
+  const success = useCallback((message: string, options?: ToastOptionsWithClick) => {
+    toast.success(message, { ...defaultOptions, className: 'toast-success', ...options });
   }, []);
 
-  const error = useCallback((message: string) => {
-    toast.error(message, { ...defaultOptions, className: 'toast-error' });
+  const error = useCallback((message: string, options?: ToastOptionsWithClick) => {
+    toast.error(message, { ...defaultOptions, className: 'toast-error', ...options });
   }, []);
 
-  const info = useCallback((message: string) => {
-    toast.info(message, { ...defaultOptions, className: 'toast-info' });
+  const info = useCallback((message: string, options?: ToastOptionsWithClick) => {
+    toast.info(message, { ...defaultOptions, className: 'toast-info', ...options });
   }, []);
 
-  const warning = useCallback((message: string) => {
-    toast.warning(message, { ...defaultOptions, className: 'toast-warning' });
+  const warning = useCallback((message: string, options?: ToastOptionsWithClick) => {
+    toast.warning(message, { ...defaultOptions, className: 'toast-warning', ...options });
   }, []);
 
   return (
