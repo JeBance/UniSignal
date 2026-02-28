@@ -1,0 +1,25 @@
+[Unit]
+Description=UniSignal Relay - Telegram Signals Gateway
+Documentation=https://github.com/JeBance/UniSignal
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment=NODE_ENV=production
+EnvironmentFile=/root/git/UniSignal/.env
+WorkingDirectory=/root/git/UniSignal
+ExecStart=/usr/bin/node /root/git/UniSignal/dist/index.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=unisignal
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
