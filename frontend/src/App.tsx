@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Container, Nav, Navbar, Alert, Spinner, Badge, Card, Form, Button } from 'react-bootstrap';
 import { useTheme } from './contexts/ThemeContext';
 import { useWebSocket } from './contexts/WebSocketContext';
@@ -61,6 +61,44 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Загрузка первого клиентского ключа и подключение к WebSocket (для админа)
+  const fetchFirstClientKeyAndConnect = useCallback(async (adminKey: string) => {
+    try {
+      console.log('[App] fetchFirstClientKeyAndConnect: loading clients...');
+      const response = await fetch('/admin/clients', {
+        headers: { 'X-Admin-Key': adminKey }
+      });
+      const data = await response.json();
+      console.log('[App] fetchFirstClientKeyAndConnect: clients loaded:', data.clients?.length || 0);
+
+      if (data.clients && data.clients.length > 0) {
+        const firstApiKey = data.clients[0].api_key;
+        console.log('[App] fetchFirstClientKeyAndConnect: using first client key:', firstApiKey.substring(0, 8) + '...');
+        connectWebSocket(firstApiKey);
+      } else {
+        // Нет клиентов - создаём первого автоматически
+        console.log('[App] fetchFirstClientKeyAndConnect: no clients, creating...');
+        const createResponse = await fetch('/admin/clients', {
+          method: 'POST',
+          headers: { 'X-Admin-Key': adminKey }
+        });
+        const newClient = await createResponse.json();
+
+        if (newClient.api_key) {
+          console.log('[App] fetchFirstClientKeyAndConnect: client created, connecting...');
+          connectWebSocket(newClient.api_key);
+          toast.success('✅ Первый клиент создан автоматически');
+        } else {
+          console.warn('[App] fetchFirstClientKeyAndConnect: failed to create client');
+          toast.warning('⚠️ Не удалось создать клиента для WebSocket');
+        }
+      }
+    } catch (err) {
+      console.error('[App] fetchFirstClientKeyAndConnect: error:', err);
+      toast.error('❌ Ошибка подключения к WebSocket');
+    }
+  }, [connectWebSocket, toast]);
+
   // Установка обработчика клика на сигнал — СРАЗУ при монтировании
   useEffect(() => {
     const handleSignalClick = (signal: any) => {
@@ -82,10 +120,10 @@ function App() {
   useEffect(() => {
     // Проверяем ключ только при загрузке страницы из localStorage
     if (!authType || !authKey || isAuthenticated) {
-      console.log('[App] Skipping validation:', { 
-        hasAuthType: !!authType, 
-        hasAuthKey: !!authKey, 
-        isAuthenticated 
+      console.log('[App] Skipping validation:', {
+        hasAuthType: !!authType,
+        hasAuthKey: !!authKey,
+        isAuthenticated
       });
       return;
     }
@@ -111,11 +149,17 @@ function App() {
         } else {
           console.log('[App] Auth validation successful, setting isAuthenticated=true');
           setIsAuthenticated(true);
-          
+
           // Если это клиент и WebSocket ещё не подключён, подключаемся
           if (authType === 'client' && !isConnected) {
             console.log('[App] Client validated, connecting to WebSocket...');
             connectWebSocket(authKey);
+          }
+          
+          // Если это админ и WebSocket ещё не подключён, подключаемся через первый клиентский ключ
+          if (authType === 'admin' && !isConnected) {
+            console.log('[App] Admin validated, fetching first client key for WebSocket...');
+            fetchFirstClientKeyAndConnect(authKey);
           }
         }
       } catch (err) {
@@ -125,7 +169,7 @@ function App() {
     };
 
     validateKey();
-  }, [authType, authKey, isAuthenticated, isConnected, connectWebSocket]);
+  }, [authType, authKey, isAuthenticated, isConnected, connectWebSocket, fetchFirstClientKeyAndConnect]);
 
   const handleLogout = () => {
     localStorage.removeItem('authType');
@@ -199,42 +243,6 @@ function App() {
       console.error('Auth error:', err);
       setAuthError('Ошибка подключения к серверу');
       setIsAuthenticating(false);
-    }
-  };
-
-  // Загрузка первого клиентского ключа и подключение к WebSocket (для админа)
-  const fetchFirstClientKeyAndConnect = async (adminKey: string) => {
-    try {
-      const response = await fetch('/admin/clients', {
-        headers: { 'X-Admin-Key': adminKey }
-      });
-      const data = await response.json();
-
-      if (data.clients && data.clients.length > 0) {
-        const firstApiKey = data.clients[0].api_key;
-        console.log('Connecting to WebSocket with first client API key:', firstApiKey.substring(0, 8) + '...');
-        connectWebSocket(firstApiKey);
-      } else {
-        // Нет клиентов - создаём первого автоматически
-        console.log('No clients found, creating first client automatically...');
-        const createResponse = await fetch('/admin/clients', {
-          method: 'POST',
-          headers: { 'X-Admin-Key': adminKey }
-        });
-        const newClient = await createResponse.json();
-        
-        if (newClient.api_key) {
-          console.log('Created new client, connecting to WebSocket...');
-          connectWebSocket(newClient.api_key);
-          toast.success('✅ Первый клиент создан автоматически');
-        } else {
-          console.warn('Failed to create client');
-          toast.warning('⚠️ Не удалось создать клиента для WebSocket');
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load/create client:', err);
-      toast.error('❌ Ошибка подключения к WebSocket');
     }
   };
 
