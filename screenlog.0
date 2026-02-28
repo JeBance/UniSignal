@@ -114,3 +114,34 @@
 {"level":"info","time":"2026-02-28T12:26:23.386Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
 {"level":"info","time":"2026-02-28T12:26:23.387Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
 {"level":"info","time":"2026-02-28T12:27:03.500Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:27:46.007Z","pid":15321,"hostname":"xloyvpacdg","chatId":"8165168854","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:27:46.008Z","pid":15321,"hostname":"xloyvpacdg","chatId":"8165168854","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:27:49.216Z","pid":15321,"hostname":"xloyvpacdg","chatId":"-1002678035223","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:27:49.217Z","pid":15321,"hostname":"xloyvpacdg","chatId":"-1002678035223","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:27:51.878Z","pid":15321,"hostname":"xloyvpacdg","chatId":"2678035223","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:27:51.879Z","pid":15321,"hostname":"xloyvpacdg","chatId":"2678035223","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:28:03.502Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:29:00.108Z","pid":15321,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T12:29:00.180Z","pid":15321,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T12:29:00.180Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"info","time":"2026-02-28T12:29:00.181Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"info","time":"2026-02-28T12:29:03.503Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:29:24.027Z","pid":15321,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T12:29:24.098Z","pid":15321,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T12:29:24.098Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"info","time":"2026-02-28T12:29:24.098Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"info","time":"2026-02-28T12:29:34.155Z","pid":15321,"hostname":"xloyvpacdg","chatId":"2678035223","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:29:34.156Z","pid":15321,"hostname":"xloyvpacdg","chatId":"2678035223","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:29:38.067Z","pid":15321,"hostname":"xloyvpacdg","chatId":"-1002678035223","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:29:38.068Z","pid":15321,"hostname":"xloyvpacdg","chatId":"-1002678035223","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:29:40.727Z","pid":15321,"hostname":"xloyvpacdg","chatId":"8165168854","msg":"Очистка истории канала"}
+{"level":"info","time":"2026-02-28T12:29:40.727Z","pid":15321,"hostname":"xloyvpacdg","chatId":"8165168854","deleted":0,"msg":"История канала очищена"}
+{"level":"info","time":"2026-02-28T12:30:03.509Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:30:34.320Z","pid":15321,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T12:30:34.396Z","pid":15321,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T12:30:34.397Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"info","time":"2026-02-28T12:30:34.397Z","pid":15321,"hostname":"xloyvpacdg","hasParsedSignal":true,"parsedSignalType":"medium_signal","payloadSize":1555,"msg":"📤 Отправка сигнала клиенту"}
+{"level":"warn","time":"2026-02-28T12:30:39.168Z","pid":15321,"hostname":"xloyvpacdg","path":"/api/signals","apiKey":"usk_fb19","msg":"Неверный API ключ"}
+{"level":"info","time":"2026-02-28T12:31:03.510Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:32:03.510Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T12:33:03.510Z","pid":15321,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}

@@ -3,7 +3,7 @@ import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dr
 import { useToast } from '../contexts/ToastContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { unisignalApi, type Signal } from '../api/unisignal';
-import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB } from '../services/signals-db';
+import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB, deleteDatabase as deleteIndexedDB } from '../services/signals-db';
 
 interface SignalsProps {
   adminKey: string;
@@ -145,6 +145,25 @@ export default function Signals({ adminKey }: SignalsProps) {
       setOnSignalClick(undefined);
     };
   }, [setOnSignalClick]);
+
+  // Очистка IndexedDB
+  const handleClearIndexedDB = async () => {
+    if (!confirm('Вы уверены, что хотите очистить IndexedDB?\n\nЭто удалит все сохранённые сигналы из браузера.')) {
+      return;
+    }
+
+    try {
+      await deleteIndexedDB();
+      toast.success('🗑️ IndexedDB очищена');
+      // Очищаем таблицу
+      setSignals([]);
+      // Перезагружаем страницу для обновления
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      toast.error('❌ Ошибка очистки IndexedDB');
+      console.error(err);
+    }
+  };
 
   // Синхронизация wsConnected с контекстом
   useEffect(() => {
@@ -589,6 +608,9 @@ export default function Signals({ adminKey }: SignalsProps) {
           <span className={`badge ${wsConnected ? 'bg-success' : 'bg-danger'} me-2`}>
             {wsConnected ? '● Подключено' : '○ Отключено'}
           </span>
+          <Button variant="outline-danger" size="sm" onClick={handleClearIndexedDB} title="Очистить IndexedDB">
+            🗑️ Очистить кэш
+          </Button>
         </div>
       </div>
 
