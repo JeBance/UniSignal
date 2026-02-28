@@ -62,13 +62,13 @@ function App() {
     };
 
     console.log('Setting onSignalClick handler on mount');
-    setOnSignalClick(() => handleSignalClick);
+    setOnSignalClick(handleSignalClick);
 
     return () => {
       console.log('Clearing onSignalClick handler on unmount');
-      setOnSignalClick(() => undefined);
+      setOnSignalClick(undefined);
     };
-  }, [setOnSignalClick]);
+  }, []); // Пустой массив зависимостей — выполняется только при монтировании/размонтировании
 
   useEffect(() => {
     // Проверяем ключ только при загрузке страницы из localStorage

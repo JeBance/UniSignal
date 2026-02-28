@@ -8,8 +8,7 @@ interface WebSocketContextType {
   lastMessage: any | null;
   connect: (apiKey: string) => void;
   disconnect: () => void;
-  onSignalClick: ((signal: any) => void) | undefined;
-  setOnSignalClick: React.Dispatch<React.SetStateAction<((signal: any) => void) | undefined>>;
+  setOnSignalClick: (callback: ((signal: any) => void) | undefined) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -20,10 +19,14 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastMessage, setLastMessage] = useState<any | null>(null);
-  const [onSignalClick, setOnSignalClick] = useState<((signal: any) => void) | undefined>(undefined);
+  const onSignalClickRef = useRef<((signal: any) => void) | undefined>(undefined);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const apiKeyRef = useRef<string>('');
   const shownSignalIdsRef = useRef<Set<number>>(new Set());
+
+  const setOnSignalClick = (callback: ((signal: any) => void) | undefined) => {
+    onSignalClickRef.current = callback;
+  };
 
   const connect = useCallback((apiKey: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -141,13 +144,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             const direction = formattedSignal.parsedSignal?.signal?.direction?.side?.toUpperCase() || formattedSignal.direction || '';
             const messageText = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
 
-            console.log('Showing toast notification, onSignalClick:', !!onSignalClick);
+            console.log('Showing toast notification, onSignalClick:', !!onSignalClickRef.current);
             toast.success(messageText, {
               onClick: () => {
                 console.log('Toast clicked, calling onSignalClick...');
-                if (onSignalClick) {
+                if (onSignalClickRef.current) {
                   console.log('Calling onSignalClick with signal:', formattedSignal.id);
-                  onSignalClick(formattedSignal);
+                  onSignalClickRef.current(formattedSignal);
                 } else {
                   console.warn('onSignalClick is not set!');
                 }
@@ -213,7 +216,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, [disconnect]);
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, isConnecting, lastMessage, connect, disconnect, onSignalClick, setOnSignalClick }}>
+    <WebSocketContext.Provider value={{ isConnected, isConnecting, lastMessage, connect, disconnect, setOnSignalClick }}>
       {children}
     </WebSocketContext.Provider>
   );
