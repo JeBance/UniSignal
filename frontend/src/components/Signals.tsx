@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Form, Table, Modal, Pagination, Dropdown } from 'react-bootstrap';
 import { useToast } from '../contexts/ToastContext';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
+import { getAllSignals, saveSignals, getLastSignalTimestamp, signalToDB } from '../services/signals-db';
 
 interface SignalsProps {
   adminKey: string;
@@ -153,23 +154,78 @@ export default function Signals({ adminKey }: SignalsProps) {
 
   const loadRecentSignals = async () => {
     try {
-      // Загружаем все сигналы (без ограничения)
-      const response = await fetch('/admin/signals?limit=100000', {
-        headers: {
-          'X-Admin-Key': adminKey,
-        },
-      });
+      // Сначала пробуем загрузить из IndexedDB
+      const dbSignals = await getAllSignals();
+      
+      if (dbSignals && dbSignals.length > 0) {
+        console.log(`Loaded ${dbSignals.length} signals from IndexedDB`);
+        setSignals(dbSignals as Signal[]);
+        
+        // Проверяем пропущенные сигналы с сервера
+        await loadMissingSignals();
+      } else {
+        // Если IndexedDB пуст, загружаем ВСЕ сигналы из API
+        console.log('IndexedDB is empty, loading ALL signals from API...');
+        const response = await fetch('/admin/signals?limit=100000', {
+          headers: {
+            'X-Admin-Key': adminKey,
+          },
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const formattedSignals = data.signals.map((s: any) => ({
-          ...s,
-          channel: s.channel || 'Unknown',
-        }));
-        setSignals(formattedSignals);
+        if (response.ok) {
+          const data = await response.json();
+          const apiSignals = data.signals || [];
+          
+          // Сохраняем ВСЕ сигналы в IndexedDB для будущего использования
+          const dbFormat = apiSignals.map((s: any) => signalToDB(s));
+          await saveSignals(dbFormat);
+          
+          setSignals(apiSignals);
+          console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
+        }
       }
     } catch (err) {
       console.error('Failed to load recent signals:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Загрузка пропущенных сигналов с сервера
+  const loadMissingSignals = async () => {
+    try {
+      // Получаем последний timestamp из IndexedDB
+      const lastTimestamp = await getLastSignalTimestamp();
+      
+      if (lastTimestamp > 0) {
+        console.log(`Checking for signals after ${new Date(lastTimestamp * 1000).toISOString()}`);
+        
+        // Запрашиваем только пропущенные сигналы через параметр since
+        const response = await fetch(`/admin/signals?limit=100000&since=${lastTimestamp}`, {
+          headers: {
+            'X-Admin-Key': adminKey,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const newSignals = data.signals || [];
+          
+          if (newSignals.length > 0) {
+            console.log(`Found ${newSignals.length} new signals`);
+            
+            // Сохраняем в IndexedDB
+            const dbFormat = newSignals.map((s: any) => signalToDB(s));
+            await saveSignals(dbFormat);
+            
+            // Добавляем в таблицу
+            setSignals(prev => [...newSignals, ...prev]);
+            toast.success(`📥 Загружено ${newSignals.length} пропущенных сигналов`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load missing signals:', err);
     }
   };
 
