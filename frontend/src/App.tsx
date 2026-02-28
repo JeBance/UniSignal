@@ -19,7 +19,18 @@ function App() {
   const { connect: connectWebSocket, disconnect: disconnectWebSocket, isConnected, setOnSignalClick } = useWebSocket();
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [authType, setAuthType] = useState<AuthType>(() => {
-    return (localStorage.getItem('authType') as AuthType) || null;
+    const type = localStorage.getItem('authType') as AuthType | null;
+    // Очищаем localStorage от лишних ключей при загрузке
+    if (type === 'admin') {
+      localStorage.removeItem('apiKey');
+    } else if (type === 'client') {
+      localStorage.removeItem('adminKey');
+    } else {
+      // Если authType не установлен, очищаем всё
+      localStorage.removeItem('adminKey');
+      localStorage.removeItem('apiKey');
+    }
+    return type || null;
   });
   const [authKey, setAuthKey] = useState(() => localStorage.getItem('authKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -84,16 +95,23 @@ function App() {
         const response = await fetch('/api/auth/validate', { headers });
         const data = await response.json();
 
+        console.log('[App] Auth validation result:', data, 'status:', response.status);
+
         if (!data.valid) {
+          console.warn('[App] Auth validation failed, logging out');
           handleLogout();
+        } else {
+          console.log('[App] Auth validation successful, setting isAuthenticated=true');
+          setIsAuthenticated(true);
         }
       } catch (err) {
         console.error('Auth validation error:', err);
+        handleLogout();
       }
     };
 
     validateKey();
-  }, []);
+  }, [authType, authKey, isAuthenticated]);
 
   const handleLogout = () => {
     localStorage.removeItem('authType');

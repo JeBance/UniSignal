@@ -226,9 +226,11 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
   useEffect(() => {
     if (!adminKey) {
+      console.log('[Signals] No adminKey, skipping load');
       setLoading(false);
       return;
     }
+    console.log('[Signals] Starting loadRecentSignals');
     loadRecentSignals();
     // WebSocket подключение происходит автоматически при авторизации в App.tsx
   }, [adminKey, authType, apiKey]);
