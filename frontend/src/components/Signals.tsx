@@ -237,19 +237,27 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
   const loadRecentSignals = async () => {
     try {
-      console.log('[Signals] loadRecentSignals started', { 
-        authType, 
-        hasAdminKey: !!adminKey, 
+      console.log('[Signals] loadRecentSignals started', {
+        authType,
+        hasAdminKey: !!adminKey,
         hasApiKey: !!apiKey,
         signalsEndpoint,
         authHeader,
-        authKeyLength: authKey?.length 
+        authKeyLength: authKey?.length
       });
 
       // Сначала пробуем загрузить из IndexedDB
       const dbSignals = await getAllSignals();
 
-      if (dbSignals && dbSignals.length > 0) {
+      // Проверяем, достаточно ли сигналов в IndexedDB
+      // Если меньше 10 - значит это первый вход и нужно загрузить полную историю
+      const MIN_SIGNALS_TO_LOAD = 10;
+      const shouldLoadFromAPI = !dbSignals || dbSignals.length < MIN_SIGNALS_TO_LOAD;
+
+      console.log(`[Signals] IndexedDB has ${dbSignals?.length || 0} signals, shouldLoadFromAPI: ${shouldLoadFromAPI}`);
+
+      if (!shouldLoadFromAPI) {
+        // В IndexedDB достаточно сигналов, используем их
         console.log(`Loaded ${dbSignals.length} signals from IndexedDB`);
         const signalsWithParsed = dbSignals.filter((s: any) => s.parsedSignal);
         console.log(`Signals with parsedSignal from IndexedDB: ${signalsWithParsed.length}`);
@@ -261,13 +269,15 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
         // Проверяем пропущенные сигналы с сервера
         await loadMissingSignals();
       } else {
-        // Если IndexedDB пуст, загружаем ВСЕ сигналы из API
-        console.log('IndexedDB is empty, loading ALL signals from API...');
-        
+        // IndexedDB пуст или содержит мало сигналов - загружаем ВСЕ сигналы из API
+        console.log(shouldLoadFromAPI && dbSignals && dbSignals.length > 0 
+          ? `IndexedDB has only ${dbSignals.length} signals, loading ALL from API...`
+          : 'IndexedDB is empty, loading ALL signals from API...');
+
         const fetchUrl = `${signalsEndpoint}?limit=100000`;
         console.log('[Signals] Fetching from API:', fetchUrl);
         console.log('[Signals] Headers:', { [authHeader]: authKey ? authKey.substring(0, 8) + '...' : 'empty' });
-        
+
         const response = await fetch(fetchUrl, {
           headers: {
             [authHeader]: authKey || '',
@@ -275,7 +285,7 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
         });
 
         console.log('[Signals] API Response status:', response.status, response.ok);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('[Signals] API Error:', response.status, errorText);
@@ -302,7 +312,7 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
         setSignals(apiSignals);
         console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
-        
+
         if (apiSignals.length === 0) {
           toast.info('ℹ️ Сигналы отсутствуют в базе данных');
         }
