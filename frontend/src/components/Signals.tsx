@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Spinner, Alert, Badge, Table, Modal, Pagination } from 'react-bootstrap';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { getAllSignals } from '../services/signals-db';
+import { getAllSignals, saveSignals } from '../services/signals-db';
 import { type Signal } from '../api/unisignal';
 
 interface SignalsProps {
@@ -9,7 +9,7 @@ interface SignalsProps {
 }
 
 export default function Signals({ authType }: SignalsProps) {
-  const { isConnected } = useWebSocket();
+  const { isConnected, lastMessage } = useWebSocket();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -28,17 +28,59 @@ export default function Signals({ authType }: SignalsProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  // Загрузка сигналов из IndexedDB
+  // Загрузка сигналов из IndexedDB или API
   useEffect(() => {
-    loadSignalsFromDB();
+    loadSignals();
   }, []);
 
-  const loadSignalsFromDB = async () => {
+  // Реакция на новые сигналы из WebSocket
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'signal') {
+      const signalData = lastMessage.data || lastMessage;
+      if (signalData && signalData.id) {
+        setSignals(prev => {
+          const exists = prev.some(s => s.id === signalData.id);
+          if (exists) return prev;
+          return [signalData, ...prev];
+        });
+      }
+    }
+  }, [lastMessage]);
+
+  const loadSignals = async () => {
     try {
+      // Сначала пробуем загрузить из IndexedDB
       const dbSignals = await getAllSignals();
-      setSignals(dbSignals as Signal[]);
+      
+      if (dbSignals && dbSignals.length > 0) {
+        console.log(`Loaded ${dbSignals.length} signals from IndexedDB`);
+        setSignals(dbSignals as Signal[]);
+      } else {
+        // Если IndexedDB пуст, загружаем из API
+        console.log('IndexedDB is empty, loading from API...');
+        const response = await fetch('/api/signals?limit=1000', {
+          headers: authType === 'admin' 
+            ? { 'X-Admin-Key': localStorage.getItem('adminKey') || '' }
+            : { 'X-API-Key': localStorage.getItem('apiKey') || '' }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const apiSignals = data.signals || [];
+          
+          // Сохраняем в IndexedDB для будущего использования
+          const dbFormat = apiSignals.map((s: any) => ({
+            ...s,
+            createdAt: Date.now()
+          }));
+          await saveSignals(dbFormat);
+          
+          setSignals(apiSignals);
+          console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
+        }
+      }
     } catch (err) {
-      console.error('Failed to load signals from IndexedDB:', err);
+      console.error('Failed to load signals:', err);
     } finally {
       setLoading(false);
     }

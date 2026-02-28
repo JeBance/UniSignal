@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useCallback, useState, type ReactNode } from 'react';
 import { useToast } from '../contexts/ToastContext';
-import { saveSignal, signalToDB, getSignalsAfter } from '../services/signals-db';
+import { saveSignal, signalToDB } from '../services/signals-db';
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -57,18 +57,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         if (message.status === 'authenticated') {
           console.log('✅ WebSocket authenticated');
           toast.success('✅ Подключено к WebSocket');
-
-          // Загружаем пропущенные сигналы
-          const lastTimestamp = await getSignalsAfter(0);
-          if (lastTimestamp.length > 0) {
-            console.log(`Загружено ${lastTimestamp.length} пропущенных сигналов`);
-          }
         } else if (message.type === 'signal') {
           const signalData = message.data || message.payload;
           if (signalData) {
             // Сохраняем в IndexedDB
             const dbSignal = signalToDB(signalData);
             await saveSignal(dbSignal);
+
+            // Обновляем lastMessage для реактивности
+            setLastMessage(signalData);
 
             // Показываем уведомление
             const ticker = signalData.signal?.instrument?.ticker || signalData.ticker || '';
