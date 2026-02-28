@@ -16,7 +16,6 @@ export default function Signals({ authType }: SignalsProps) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
-  const [apiKeyForWs, setApiKeyForWs] = useState<string>('');
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -149,17 +148,9 @@ export default function Signals({ authType }: SignalsProps) {
       return;
     }
 
-    // Клиенты загружаются только для админа, затем сигналы
-    if (authType === 'admin') {
-      loadClients();
-    } else {
-      // Для клиента сразу загружаем сигналы и API ключ для WebSocket
-      const key = localStorage.getItem('apiKey');
-      if (key) {
-        setApiKeyForWs(key);
-      }
-      loadRecentSignals();
-    }
+    // Загружаем клиентов для выбора API ключа
+    loadClients();
+    loadRecentSignals();
   }, []);
 
   const loadClients = async () => {
@@ -177,6 +168,13 @@ export default function Signals({ authType }: SignalsProps) {
       setLoading(false);
     }
   };
+
+  // Автоматическое подключение к WebSocket при выборе клиента
+  useEffect(() => {
+    if (selectedClient && authType === 'client') {
+      connectWebSocket(selectedClient);
+    }
+  }, [selectedClient]);
 
   const loadRecentSignals = async () => {
     try {
@@ -200,8 +198,8 @@ export default function Signals({ authType }: SignalsProps) {
     }
   };
 
+  // WebSocket подключение для админа
   useEffect(() => {
-    // WebSocket подключается только если выбран клиент (для админа)
     if (authType !== 'admin' || !selectedClient) return;
 
     // Подключаемся только если ещё не подключены и нет активного соединения
@@ -570,18 +568,23 @@ export default function Signals({ authType }: SignalsProps) {
       ) : (
         <Card className="mb-4">
           <Card.Body>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>👤 Режим клиента:</strong> Вы просматриваете сигналы в режиме только для чтения.
-              </div>
-              <Button
-                variant={wsConnected ? 'success' : 'primary'}
-                onClick={() => apiKeyForWs && connectWebSocket(apiKeyForWs)}
-                disabled={wsConnected || !apiKeyForWs}
-              >
-                {wsConnected ? '● Подключено к WebSocket' : '🔌 Подключиться к WebSocket'}
-              </Button>
-            </div>
+            <Form>
+              <Form.Group>
+                <Form.Label>Выберите клиента для подключения к WebSocket</Form.Label>
+                <Form.Select
+                  value={selectedClient}
+                  onChange={(e) => setSelectedClient(e.target.value)}
+                  style={{ maxWidth: '500px' }}
+                >
+                  <option value="">-- Выберите API ключ --</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.api_key}>
+                      {client.id.slice(0, 8)}... - {client.api_key}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Form>
           </Card.Body>
         </Card>
       )}
