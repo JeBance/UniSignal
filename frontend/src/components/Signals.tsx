@@ -149,6 +149,24 @@ export default function Signals({ adminKey }: SignalsProps) {
         setSelectedSignal(lastMessage);
         setShowModal(true);
         
+        // Подгружаем полную информацию с сервера
+        fetch(`/admin/signals?limit=1`, {
+          headers: { 'X-Admin-Key': adminKey }
+        })
+          .then(r => r.json())
+          .then(data => {
+            const serverSignal = data.signals?.[0];
+            if (serverSignal && serverSignal.id === lastMessage.id) {
+              // Обновляем сигнал в таблице полной версией
+              setSignals(prev => prev.map(s => 
+                s.id === lastMessage.id ? { ...s, ...serverSignal } : s
+              ));
+              // Обновляем выбранный сигнал для модального окна
+              setSelectedSignal(serverSignal);
+            }
+          })
+          .catch(err => console.error('Failed to load full signal:', err));
+        
         return [lastMessage, ...prev];
       });
     }
