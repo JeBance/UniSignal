@@ -175,7 +175,7 @@ export class ClientWsServer {
   private sendToClient(ws: WebSocket, message: ProcessedMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
       try {
-        ws.send(JSON.stringify({
+        const payload = {
           type: 'signal',
           data: {
             id: message.id,
@@ -189,7 +189,15 @@ export class ClientWsServer {
             timestamp: Math.floor(message.original_timestamp.getTime() / 1000),
             parsed_signal: message.parsedSignal,
           },
-        }));
+        };
+        
+        logger.info({ 
+          hasParsedSignal: !!message.parsedSignal,
+          parsedSignalType: message.parsedSignal?.signal?.type,
+          payloadSize: JSON.stringify(payload).length
+        }, '📤 Отправка сигнала клиенту');
+        
+        ws.send(JSON.stringify(payload));
       } catch (err) {
         logger.error({ err }, 'Ошибка отправки сообщения клиенту');
       }

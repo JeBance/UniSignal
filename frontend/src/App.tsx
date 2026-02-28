@@ -52,7 +52,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Установка обработчика клика на сигнал
+  // Установка обработчика клика на сигнал — СРАЗУ при монтировании
   useEffect(() => {
     const handleSignalClick = (signal: any) => {
       console.log('Signal clicked:', signal.id);
@@ -61,12 +61,11 @@ function App() {
       setCurrentPage('signals');
     };
 
-    console.log('Setting onSignalClick handler');
+    console.log('Setting onSignalClick handler on mount');
     setOnSignalClick(() => handleSignalClick);
 
-    // Сбрасываем lastMessage при установке обработчика, чтобы не триггерить старые уведомления
     return () => {
-      console.log('Clearing onSignalClick handler');
+      console.log('Clearing onSignalClick handler on unmount');
       setOnSignalClick(() => undefined);
     };
   }, [setOnSignalClick]);

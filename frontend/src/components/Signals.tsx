@@ -162,11 +162,16 @@ export default function Signals({ adminKey }: SignalsProps) {
     try {
       // Сначала пробуем загрузить из IndexedDB
       const dbSignals = await getAllSignals();
-      
+
       if (dbSignals && dbSignals.length > 0) {
         console.log(`Loaded ${dbSignals.length} signals from IndexedDB`);
+        const signalsWithParsed = dbSignals.filter((s: any) => s.parsedSignal);
+        console.log(`Signals with parsedSignal from IndexedDB: ${signalsWithParsed.length}`);
+        if (signalsWithParsed.length > 0) {
+          console.log('First parsedSignal:', JSON.stringify(signalsWithParsed[0].parsedSignal, null, 2).substring(0, 200));
+        }
         setSignals(dbSignals as Signal[]);
-        
+
         // Проверяем пропущенные сигналы с сервера
         await loadMissingSignals();
       } else {

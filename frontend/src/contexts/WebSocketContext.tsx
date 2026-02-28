@@ -64,6 +64,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         } else if (message.type === 'signal') {
           // Обрабатываем два формата сообщений
           const signalData = message.data || message.payload;
+          const isPayloadFormat = !!message.payload;
 
           if (signalData) {
             const signalId = signalData.id;
@@ -74,20 +75,46 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               return;
             }
             
-            // Конвертируем формат из БД (snake_case) в frontend (camelCase)
-            const formattedSignal = {
-              id: signalData.id,
-              channel: signalData.channel || signalData.channel_name,
-              direction: signalData.direction,
-              ticker: signalData.ticker,
-              entryPrice: signalData.entry_price || signalData.entryPrice,
-              stopLoss: signalData.stop_loss || signalData.stopLoss,
-              takeProfit: signalData.take_profit || signalData.takeProfit,
-              text: signalData.content_text || signalData.text,
-              timestamp: signalData.timestamp,
-              // parsed_signal может быть в snake_case или camelCase
-              parsedSignal: signalData.parsed_signal || signalData.parsedSignal,
-            };
+            // Если это payload формат (TradingSignal от broadcastSignal), извлекаем данные правильно
+            let formattedSignal: any;
+            if (isPayloadFormat && signalData.signal_id) {
+              // Формат от broadcastSignal: TradingSignal
+              formattedSignal = {
+                id: signalData.signal_id,
+                channel: signalData.source?.channel || 'Unknown',
+                direction: signalData.signal?.direction?.side?.toUpperCase() || null,
+                ticker: signalData.signal?.instrument?.ticker || null,
+                entryPrice: signalData.signal?.trade_setup?.entry_price || null,
+                stopLoss: signalData.signal?.trade_setup?.stop_loss?.stop_0_5 || null,
+                takeProfit: signalData.signal?.trade_setup?.targets?.[0] || null,
+                text: signalData.source?.original_text || '',
+                timestamp: signalData.timestamp ? 
+                  (typeof signalData.timestamp === 'string' ? Math.floor(new Date(signalData.timestamp).getTime() / 1000) : signalData.timestamp) 
+                  : Math.floor(Date.now() / 1000),
+                parsedSignal: signalData,
+              };
+            } else {
+              // Формат от broadcast: ProcessedMessage data
+              formattedSignal = {
+                id: signalData.id,
+                channel: signalData.channel || signalData.channel_name,
+                direction: signalData.direction,
+                ticker: signalData.ticker,
+                entryPrice: signalData.entry_price || signalData.entryPrice,
+                stopLoss: signalData.stop_loss || signalData.stopLoss,
+                takeProfit: signalData.take_profit || signalData.takeProfit,
+                text: signalData.content_text || signalData.text,
+                timestamp: signalData.timestamp,
+                // parsed_signal может быть в snake_case или camelCase
+                parsedSignal: signalData.parsed_signal || signalData.parsedSignal,
+              };
+            }
+            
+            // Проверяем наличие валидного id перед сохранением
+            if (!formattedSignal.id) {
+              console.error('Signal without id, skipping:', signalData);
+              return;
+            }
 
             // Сохраняем в IndexedDB
             const dbSignal = signalToDB(formattedSignal);
