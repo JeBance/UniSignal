@@ -81,10 +81,18 @@ function App() {
 
   useEffect(() => {
     // Проверяем ключ только при загрузке страницы из localStorage
-    if (!authType || !authKey || isAuthenticated) return;
+    if (!authType || !authKey || isAuthenticated) {
+      console.log('[App] Skipping validation:', { 
+        hasAuthType: !!authType, 
+        hasAuthKey: !!authKey, 
+        isAuthenticated 
+      });
+      return;
+    }
 
     const validateKey = async () => {
       try {
+        console.log('[App] Validating key on page load:', { authType, authKeyLength: authKey.length });
         const headers: Record<string, string> = {};
         if (authType === 'admin') {
           headers['X-Admin-Key'] = authKey;
@@ -103,6 +111,12 @@ function App() {
         } else {
           console.log('[App] Auth validation successful, setting isAuthenticated=true');
           setIsAuthenticated(true);
+          
+          // Если это клиент и WebSocket ещё не подключён, подключаемся
+          if (authType === 'client' && !isConnected) {
+            console.log('[App] Client validated, connecting to WebSocket...');
+            connectWebSocket(authKey);
+          }
         }
       } catch (err) {
         console.error('Auth validation error:', err);
@@ -111,7 +125,7 @@ function App() {
     };
 
     validateKey();
-  }, [authType, authKey, isAuthenticated]);
+  }, [authType, authKey, isAuthenticated, isConnected, connectWebSocket]);
 
   const handleLogout = () => {
     localStorage.removeItem('authType');
@@ -127,15 +141,18 @@ function App() {
 
   const handleLogin = async () => {
     if (!authKey.trim()) return;
-    
+
     setIsAuthenticating(true);
     setAuthError(null);
-    
+
     try {
+      console.log('[App] Starting login with key:', authKey.substring(0, 8) + '...');
+      
       const adminResponse = await fetch('/api/auth/validate', {
         headers: { 'X-Admin-Key': authKey }
       });
       const adminData = await adminResponse.json();
+      console.log('[App] Admin validation result:', adminData);
 
       if (adminData.valid && adminData.role === 'admin') {
         // Сохраняем ключи в localStorage СРАЗУ
@@ -147,7 +164,8 @@ function App() {
         setAuthType('admin');
         setIsAuthenticated(true);
         setIsAuthenticating(false);
-        
+
+        console.log('[App] Admin login successful, fetching first client key...');
         // Для админа: сначала загружаем клиентов и подключаемся с первым ключом
         fetchFirstClientKeyAndConnect(authKey);
         return;
@@ -157,6 +175,7 @@ function App() {
         headers: { 'X-API-Key': authKey }
       });
       const clientData = await clientResponse.json();
+      console.log('[App] Client validation result:', clientData);
 
       if (clientData.valid && clientData.role === 'client') {
         // Сохраняем ключи в localStorage СРАЗУ
@@ -168,7 +187,8 @@ function App() {
         setAuthType('client');
         setIsAuthenticated(true);
         setIsAuthenticating(false);
-        
+
+        console.log('[App] Client login successful, connecting to WebSocket...');
         // Подключаемся к WebSocket
         connectWebSocket(authKey);
       } else {
