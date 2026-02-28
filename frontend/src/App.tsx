@@ -153,17 +153,32 @@ function App() {
         headers: { 'X-Admin-Key': adminKey }
       });
       const data = await response.json();
-      
+
       if (data.clients && data.clients.length > 0) {
         const firstApiKey = data.clients[0].api_key;
         console.log('Connecting to WebSocket with first client API key:', firstApiKey.substring(0, 8) + '...');
         connectWebSocket(firstApiKey);
       } else {
-        console.warn('No clients found. Admin can still use the system but WebSocket won\'t be connected.');
-        toast.info('ℹ️ Нет клиентов для подключения к WebSocket');
+        // Нет клиентов - создаём первого автоматически
+        console.log('No clients found, creating first client automatically...');
+        const createResponse = await fetch('/admin/clients', {
+          method: 'POST',
+          headers: { 'X-Admin-Key': adminKey }
+        });
+        const newClient = await createResponse.json();
+        
+        if (newClient.api_key) {
+          console.log('Created new client, connecting to WebSocket...');
+          connectWebSocket(newClient.api_key);
+          toast.success('✅ Первый клиент создан автоматически');
+        } else {
+          console.warn('Failed to create client');
+          toast.warning('⚠️ Не удалось создать клиента для WebSocket');
+        }
       }
     } catch (err) {
-      console.error('Failed to load clients:', err);
+      console.error('Failed to load/create client:', err);
+      toast.error('❌ Ошибка подключения к WebSocket');
     }
   };
 

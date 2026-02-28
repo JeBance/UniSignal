@@ -133,31 +133,8 @@ export default function Signals({ adminKey }: SignalsProps) {
       return;
     }
     loadRecentSignals();
-    ensureClientAndConnect();
+    // WebSocket подключение происходит автоматически при авторизации в App.tsx
   }, [adminKey]);
-
-  // Проверка наличия клиентов и подключение
-  const ensureClientAndConnect = async () => {
-    try {
-      const response = await unisignalApi.getClients();
-      const clients = response.data.clients;
-      
-      if (clients.length === 0) {
-        // Нет клиентов - создаём первого автоматически для админа
-        console.log('No clients found, creating first client automatically...');
-        const createResponse = await unisignalApi.createClient();
-        const newClient = createResponse.data;
-        console.log('Created new client:', newClient.id);
-        connectWebSocket(newClient.api_key);
-      } else {
-        // Подключаемся с первым клиентом
-        connectWebSocket(clients[0].api_key);
-      }
-    } catch (err) {
-      console.error('Failed to ensure client:', err);
-      setLoading(false);
-    }
-  };
 
   const loadRecentSignals = async () => {
     try {
