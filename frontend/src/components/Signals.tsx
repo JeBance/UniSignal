@@ -231,10 +231,19 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
     }
     loadRecentSignals();
     // WebSocket подключение происходит автоматически при авторизации в App.tsx
-  }, [adminKey]);
+  }, [adminKey, authType, apiKey]);
 
   const loadRecentSignals = async () => {
     try {
+      console.log('[Signals] loadRecentSignals started', { 
+        authType, 
+        hasAdminKey: !!adminKey, 
+        hasApiKey: !!apiKey,
+        signalsEndpoint,
+        authHeader,
+        authKeyLength: authKey?.length 
+      });
+
       // Сначала пробуем загрузить из IndexedDB
       const dbSignals = await getAllSignals();
 
@@ -252,26 +261,53 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
       } else {
         // Если IndexedDB пуст, загружаем ВСЕ сигналы из API
         console.log('IndexedDB is empty, loading ALL signals from API...');
-        const response = await fetch(`${signalsEndpoint}?limit=100000`, {
+        
+        const fetchUrl = `${signalsEndpoint}?limit=100000`;
+        console.log('[Signals] Fetching from API:', fetchUrl);
+        console.log('[Signals] Headers:', { [authHeader]: authKey ? authKey.substring(0, 8) + '...' : 'empty' });
+        
+        const response = await fetch(fetchUrl, {
           headers: {
             [authHeader]: authKey || '',
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const apiSignals = data.signals || [];
+        console.log('[Signals] API Response status:', response.status, response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Signals] API Error:', response.status, errorText);
+          toast.error(`❌ Ошибка загрузки сигналов: ${response.status} ${errorText}`);
+          setLoading(false);
+          return;
+        }
 
-          // Сохраняем ВСЕ сигналы в IndexedDB для будущего использования
-          const dbFormat = apiSignals.map((s: any) => signalToDB(s));
-          await saveSignals(dbFormat);
+        const data = await response.json();
+        const apiSignals = data.signals || [];
 
-          setSignals(apiSignals);
-          console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
+        console.log(`[Signals] Loaded ${apiSignals.length} signals from API`);
+        if (apiSignals.length > 0) {
+          console.log('[Signals] First signal:', {
+            id: apiSignals[0]?.id,
+            ticker: apiSignals[0]?.ticker,
+            hasParsedSignal: !!apiSignals[0]?.parsedSignal
+          });
+        }
+
+        // Сохраняем ВСЕ сигналы в IndexedDB для будущего использования
+        const dbFormat = apiSignals.map((s: any) => signalToDB(s));
+        await saveSignals(dbFormat);
+
+        setSignals(apiSignals);
+        console.log(`Loaded ${apiSignals.length} signals from API and saved to IndexedDB`);
+        
+        if (apiSignals.length === 0) {
+          toast.info('ℹ️ Сигналы отсутствуют в базе данных');
         }
       }
     } catch (err) {
       console.error('Failed to load recent signals:', err);
+      toast.error('❌ Ошибка загрузки сигналов из API');
     } finally {
       setLoading(false);
     }

@@ -150,14 +150,16 @@ export class AdminApi {
     const apiKey = req.headers['x-api-key'];
     const adminKey = req.headers['x-admin-key'];
 
-    logger.debug({
+    logger.info({
       path: req.path,
       hasApiKey: !!apiKey,
-      hasAdminKey: !!adminKey
-    }, 'Проверка ключа авторизации');
+      hasAdminKey: !!adminKey,
+      apiKeyPrefix: apiKey ? apiKey.toString().substring(0, 8) : undefined
+    }, 'Проверка ключа авторизации для /api/*');
 
     // Сначала проверяем админский ключ
     if (adminKey && adminKey === this.config.adminMasterKey) {
+      logger.info({ path: req.path }, 'Авторизация через ADMIN_MASTER_KEY');
       (res.locals as { authUser?: AuthUser }).authUser = { role: 'admin' };
       next();
       return;
@@ -173,6 +175,13 @@ export class AdminApi {
     // Проверяем API ключ клиента
     this.clientRepo.getByApiKey(apiKey.toString())
       .then(client => {
+        logger.info({ 
+          path: req.path, 
+          apiKeyPrefix: apiKey.toString().substring(0, 8),
+          clientFound: !!client,
+          clientActive: client?.is_active 
+        }, 'Результат проверки API ключа');
+        
         if (!client || !client.is_active) {
           logger.warn({ path: req.path, apiKey: apiKey.toString().substring(0, 8) }, 'Неверный API ключ');
           res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
@@ -184,10 +193,11 @@ export class AdminApi {
           role: 'client',
           clientId: client.id
         };
+        logger.info({ path: req.path, clientId: client.id }, 'Клиент успешно авторизован');
         next();
       })
       .catch(err => {
-        logger.error({ err }, 'Ошибка проверки API ключа');
+        logger.error({ err, path: req.path }, 'Ошибка проверки API ключа');
         res.status(500).json({ error: 'Internal server error' });
       });
   }
@@ -566,9 +576,18 @@ export class AdminApi {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const since = parseInt(req.query.since as string) || 0;
+      const authUser = (res.locals as { authUser?: AuthUser }).authUser;
+
+      logger.info({
+        path: req.path,
+        limit,
+        since,
+        authRole: authUser?.role,
+        clientId: authUser?.clientId
+      }, 'Запрос на получение сигналов');
 
       const pool = getPool();
-      
+
       let query: string;
       const params: (number | string)[] = [];
 
@@ -599,7 +618,17 @@ export class AdminApi {
         params.push(limit);
       }
 
+      logger.debug({ query, params }, 'SQL запрос для получения сигналов');
+
+      const startTime = Date.now();
       const result = await pool.query(query, params);
+      const queryTime = Date.now() - startTime;
+
+      logger.info({
+        rowCount: result.rows.length,
+        queryTime,
+        path: req.path
+      }, 'Результат запроса сигналов');
 
       interface SignalRow {
         id: number;
