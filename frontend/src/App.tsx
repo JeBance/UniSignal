@@ -47,10 +47,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!authType || !authKey) {
-      setIsAuthenticated(false);
-      return;
-    }
+    // Проверяем ключ только при загрузке страницы из localStorage
+    if (!authType || !authKey || isAuthenticated) return;
 
     const validateKey = async () => {
       try {
@@ -60,24 +58,20 @@ function App() {
         } else {
           headers['X-API-Key'] = authKey;
         }
-        
+
         const response = await fetch('/api/auth/validate', { headers });
         const data = await response.json();
-        
-        if (data.valid) {
-          setIsAuthenticated(true);
-          setAuthError(null);
-        } else {
+
+        if (!data.valid) {
           handleLogout();
         }
       } catch (err) {
         console.error('Auth validation error:', err);
-        setIsAuthenticated(true);
       }
     };
 
     validateKey();
-  }, [authType, authKey]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('authType');
