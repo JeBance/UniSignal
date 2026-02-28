@@ -557,22 +557,49 @@ export class AdminApi {
   }
 
   /**
-   * GET /admin/signals - Получение последних сигналов
+   * GET /api/signals и GET /admin/signals - Получение сигналов
+   * Поддерживает параметры:
+   * - limit: количество сигналов (по умолчанию 50)
+   * - since: timestamp, сигналы новее которого нужны (опционально)
    */
   private async getSignals(req: Request, res: Response): Promise<void> {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
+      const since = parseInt(req.query.since as string) || 0;
 
       const pool = getPool();
-      const result = await pool.query(`
-        SELECT m.id, m.direction, m.ticker, m.entry_price, m.stop_loss, m.take_profit,
-               m.content_text, m.original_timestamp, c.name as channel_name,
-               m.parsed_signal
-        FROM messages m
-        LEFT JOIN channels c ON m.channel_id = c.chat_id
-        ORDER BY m.created_at DESC
-        LIMIT $1
-      `, [limit]);
+      
+      let query: string;
+      let params: any[];
+      
+      if (since > 0) {
+        // Загрузка сигналов новее указанного timestamp
+        query = `
+          SELECT m.id, m.direction, m.ticker, m.entry_price, m.stop_loss, m.take_profit,
+                 m.content_text, m.original_timestamp, c.name as channel_name,
+                 m.parsed_signal
+          FROM messages m
+          LEFT JOIN channels c ON m.channel_id = c.chat_id
+          WHERE EXTRACT(EPOCH FROM m.original_timestamp) > $1
+          ORDER BY m.created_at DESC
+          LIMIT $2
+        `;
+        params = [since, limit];
+      } else {
+        // Загрузка всех сигналов
+        query = `
+          SELECT m.id, m.direction, m.ticker, m.entry_price, m.stop_loss, m.take_profit,
+                 m.content_text, m.original_timestamp, c.name as channel_name,
+                 m.parsed_signal
+          FROM messages m
+          LEFT JOIN channels c ON m.channel_id = c.chat_id
+          ORDER BY m.created_at DESC
+          LIMIT $1
+        `;
+        params = [limit];
+      }
+
+      const result = await pool.query(query, params);
 
       const signals = result.rows.map((row: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
         id: row.id,

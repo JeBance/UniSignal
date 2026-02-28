@@ -100,8 +100,8 @@ export default function Signals({ authType }: SignalsProps) {
       if (lastTimestamp > 0) {
         console.log(`Checking for signals after ${new Date(lastTimestamp * 1000).toISOString()}`);
         
-        // Запрашиваем ВСЕ сигналы с сервера для сравнения
-        const response = await fetch('/api/signals?limit=100000', {
+        // Запрашиваем только пропущенные сигналы через параметр since
+        const response = await fetch(`/api/signals?limit=100000&since=${lastTimestamp}`, {
           headers: authType === 'admin' 
             ? { 'X-Admin-Key': localStorage.getItem('adminKey') || '' }
             : { 'X-API-Key': localStorage.getItem('apiKey') || '' }
@@ -109,10 +109,7 @@ export default function Signals({ authType }: SignalsProps) {
         
         if (response.ok) {
           const data = await response.json();
-          const allSignals = data.signals || [];
-          
-          // Фильтруем только новые сигналы
-          const newSignals = allSignals.filter((s: any) => s.timestamp > lastTimestamp);
+          const newSignals = data.signals || [];
           
           if (newSignals.length > 0) {
             console.log(`Found ${newSignals.length} new signals`);
