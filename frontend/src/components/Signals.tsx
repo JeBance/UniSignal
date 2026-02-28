@@ -4,12 +4,10 @@ import { useToast } from '../contexts/ToastContext';
 import { unisignalApi, type Signal, type Client } from '../api/unisignal';
 
 interface SignalsProps {
-  adminKey: string | null;
-  apiKey: string | null;
   authType: 'admin' | 'client' | null;
 }
 
-export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
+export default function Signals({ authType }: SignalsProps) {
   const toast = useToast();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -149,13 +147,13 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
       setLoading(false);
       return;
     }
-    
+
     // Клиенты загружаются только для админа
     if (authType === 'admin') {
       loadClients();
     }
     loadRecentSignals();
-  }, [authType, apiKey, adminKey]);
+  }, [authType]);
 
   const loadClients = async () => {
     try {
@@ -174,21 +172,11 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
   const loadRecentSignals = async () => {
     try {
-      // Загружаем все сигналы (без ограничения)
-      const endpoint = authType === 'admin' ? '/admin/signals' : '/api/signals';
-      const headers: Record<string, string> = {};
-      
-      if (authType === 'admin' && adminKey) {
-        headers['X-Admin-Key'] = adminKey;
-      } else if (authType === 'client' && apiKey) {
-        headers['X-API-Key'] = apiKey;
-      }
+      // Загружаем все сигналы через универсальный endpoint
+      const response = await unisignalApi.getSignals(100000);
 
-      const response = await fetch(`${endpoint}?limit=100000`, { headers });
-
-      if (response.ok) {
-        const data = await response.json();
-        const formattedSignals = data.signals.map((s: any) => ({
+      if (response.data) {
+        const formattedSignals = response.data.signals.map((s: any) => ({
           ...s,
           channel: s.channel || 'Unknown',
         }));
@@ -204,7 +192,7 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
   useEffect(() => {
     // WebSocket подключается только если выбран клиент (для админа)
-    if (authType !== 'admin' || !selectedClient || !adminKey) return;
+    if (authType !== 'admin' || !selectedClient) return;
 
     // Подключаемся только если ещё не подключены и нет активного соединения
     if (!wsConnected && !wsRef.current) {
@@ -216,7 +204,7 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
     return () => {
       // Не закрываем соединение здесь, чтобы избежать лишних реконнектов
     };
-  }, [selectedClient, adminKey, authType]);
+  }, [selectedClient, authType]);
 
   const connectWebSocket = (apiKey: string) => {
     // Закрываем существующее соединение, если есть
@@ -333,7 +321,7 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
 
         // Автоматическое переподключение через 5 секунд
         setTimeout(() => {
-          if (selectedClient && adminKey && !wsRef.current) {
+          if (selectedClient && !wsRef.current) {
             console.log('Reconnecting...');
             connectWebSocket(selectedClient);
           }
@@ -508,9 +496,9 @@ export default function Signals({ adminKey, apiKey, authType }: SignalsProps) {
     return pages;
   };
 
-  if (!adminKey) {
+  if (!authType) {
     return (
-      <Alert variant="info">Введите ADMIN_MASTER_KEY для просмотра сигналов</Alert>
+      <Alert variant="info">Войдите для просмотра сигналов</Alert>
     );
   }
 
