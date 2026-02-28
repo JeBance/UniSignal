@@ -16,6 +16,7 @@ export default function Signals({ authType }: SignalsProps) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
+  const [apiKeyForWs, setApiKeyForWs] = useState<string>('');
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -152,7 +153,11 @@ export default function Signals({ authType }: SignalsProps) {
     if (authType === 'admin') {
       loadClients();
     } else {
-      // Для клиента сразу загружаем сигналы
+      // Для клиента сразу загружаем сигналы и API ключ для WebSocket
+      const key = localStorage.getItem('apiKey');
+      if (key) {
+        setApiKeyForWs(key);
+      }
       loadRecentSignals();
     }
   }, []);
@@ -563,10 +568,22 @@ export default function Signals({ authType }: SignalsProps) {
           </Card.Body>
         </Card>
       ) : (
-        <Alert variant="info" className="mb-4">
-          <strong>👤 Режим клиента:</strong> Вы просматриваете сигналы в режиме только для чтения.
-          Для получения сигналов в реальном времени подключитесь к WebSocket с вашим API ключом.
-        </Alert>
+        <Card className="mb-4">
+          <Card.Body>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>👤 Режим клиента:</strong> Вы просматриваете сигналы в режиме только для чтения.
+              </div>
+              <Button
+                variant={wsConnected ? 'success' : 'primary'}
+                onClick={() => apiKeyForWs && connectWebSocket(apiKeyForWs)}
+                disabled={wsConnected || !apiKeyForWs}
+              >
+                {wsConnected ? '● Подключено к WebSocket' : '🔌 Подключиться к WebSocket'}
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
       )}
 
       <Card>

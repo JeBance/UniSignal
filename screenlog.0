@@ -2,21 +2,53 @@
 > unisignal-relay@1.0.0 dev
 > tsx watch src/index.ts
 
-{"level":"info","time":"2026-02-28T08:47:43.069Z","pid":5562,"hostname":"xloyvpacdg","msg":"🚀 Запуск UniSignal Relay..."}
-{"level":"info","time":"2026-02-28T08:47:43.070Z","pid":5562,"hostname":"xloyvpacdg","msg":"Подключение к базе данных инициализировано"}
-{"level":"info","time":"2026-02-28T08:47:43.089Z","pid":5562,"hostname":"xloyvpacdg","msg":"✅ Подключение к базе данных успешно"}
-{"level":"info","time":"2026-02-28T08:47:43.089Z","pid":5562,"hostname":"xloyvpacdg","msg":"Подключение к Telegrab WS: ws://localhost:3000/ws"}
-{"level":"info","time":"2026-02-28T08:47:43.094Z","pid":5562,"hostname":"xloyvpacdg","path":"/ws","msg":"📡 Client WS сервер запущен"}
-{"level":"info","time":"2026-02-28T08:47:43.094Z","pid":5562,"hostname":"xloyvpacdg","msg":"📡 Порт: 3001"}
-{"level":"info","time":"2026-02-28T08:47:43.094Z","pid":5562,"hostname":"xloyvpacdg","msg":"🔌 Подключение к Telegrab WS установлено"}
-{"level":"info","time":"2026-02-28T08:47:43.094Z","pid":5562,"hostname":"xloyvpacdg","msg":"🌐 Admin HTTP API запущен"}
-{"level":"info","time":"2026-02-28T08:47:43.094Z","pid":5562,"hostname":"xloyvpacdg","msg":"🔗 Client WS сервер запущен (путь: /ws)"}
-{"level":"info","time":"2026-02-28T08:47:43.095Z","pid":5562,"hostname":"xloyvpacdg","port":3001,"msg":"🌐 Admin HTTP API запущен на порту 3001"}
-{"level":"info","time":"2026-02-28T08:47:43.097Z","pid":5562,"hostname":"xloyvpacdg","msg":"✅ Подключение к Telegrab WebSocket успешно"}
-{"level":"info","time":"2026-02-28T08:47:48.135Z","pid":5562,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
-{"level":"info","time":"2026-02-28T08:47:48.259Z","pid":5562,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
-{"level":"info","time":"2026-02-28T08:48:43.097Z","pid":5562,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T08:49:43.105Z","pid":5562,"hostname":"xloyvpacdg","clients":1,"buffer":0,"msg":"📊 Статистика"}
-{"level":"info","time":"2026-02-28T08:50:32.743Z","pid":5562,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
-{"level":"info","time":"2026-02-28T08:50:33.554Z","pid":5562,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
-{"level":"info","time":"2026-02-28T08:50:43.107Z","pid":5562,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:51:56.685Z","pid":5802,"hostname":"xloyvpacdg","msg":"🚀 Запуск UniSignal Relay..."}
+{"level":"info","time":"2026-02-28T08:51:56.686Z","pid":5802,"hostname":"xloyvpacdg","msg":"Подключение к базе данных инициализировано"}
+{"level":"info","time":"2026-02-28T08:51:56.706Z","pid":5802,"hostname":"xloyvpacdg","msg":"✅ Подключение к базе данных успешно"}
+{"level":"info","time":"2026-02-28T08:51:56.707Z","pid":5802,"hostname":"xloyvpacdg","msg":"Подключение к Telegrab WS: ws://localhost:3000/ws"}
+{"level":"info","time":"2026-02-28T08:51:56.711Z","pid":5802,"hostname":"xloyvpacdg","path":"/ws","msg":"📡 Client WS сервер запущен"}
+{"level":"info","time":"2026-02-28T08:51:56.711Z","pid":5802,"hostname":"xloyvpacdg","msg":"📡 Порт: 3001"}
+{"level":"info","time":"2026-02-28T08:51:56.712Z","pid":5802,"hostname":"xloyvpacdg","msg":"🔌 Подключение к Telegrab WS установлено"}
+{"level":"info","time":"2026-02-28T08:51:56.712Z","pid":5802,"hostname":"xloyvpacdg","msg":"🌐 Admin HTTP API запущен"}
+{"level":"info","time":"2026-02-28T08:51:56.712Z","pid":5802,"hostname":"xloyvpacdg","msg":"🔗 Client WS сервер запущен (путь: /ws)"}
+{"level":"info","time":"2026-02-28T08:51:56.712Z","pid":5802,"hostname":"xloyvpacdg","port":3001,"msg":"🌐 Admin HTTP API запущен на порту 3001"}
+{"level":"info","time":"2026-02-28T08:51:56.715Z","pid":5802,"hostname":"xloyvpacdg","msg":"✅ Подключение к Telegrab WebSocket успешно"}
+{"level":"info","time":"2026-02-28T08:52:01.624Z","pid":5802,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T08:52:01.697Z","pid":5802,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T08:52:01.760Z","pid":5802,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T08:52:01.840Z","pid":5802,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T08:52:56.715Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:53:56.721Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:54:56.722Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:55:56.730Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:56:56.738Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:57:56.742Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:58:56.746Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T08:59:01.757Z","pid":5802,"hostname":"xloyvpacdg","type":"new_message","msg":"📨 Событие от Telegrab"}
+{"level":"info","time":"2026-02-28T08:59:01.757Z","pid":5802,"hostname":"xloyvpacdg","chat_id":8165168854,"chat_title":"ASFunding_bot","message_id":298,"msg":"Новое сообщение: \"⚡️ **Сигнал по фандингу (BYBIT)**\n🔹 **Инструмент:...\""}
+{"level":"info","time":"2026-02-28T08:59:01.771Z","pid":5802,"hostname":"xloyvpacdg","id":"148387","channel":"ASFunding_bot","ticker":"SOLAYERUSDT","signal_type":"funding_rate","msg":"✅ Сообщение сохранено"}
+{"level":"info","time":"2026-02-28T08:59:01.771Z","pid":5802,"hostname":"xloyvpacdg","id":"148387","channel":"ASFunding_bot","ticker":"SOLAYERUSDT","direction":null,"entryPrice":null,"stopLoss":null,"takeProfit":null,"signalType":"funding_rate","msg":"✅ Сообщение обработано"}
+{"level":"info","time":"2026-02-28T08:59:01.968Z","pid":5802,"hostname":"xloyvpacdg","type":"new_message","msg":"📨 Событие от Telegrab"}
+{"level":"info","time":"2026-02-28T08:59:01.968Z","pid":5802,"hostname":"xloyvpacdg","chat_id":8165168854,"chat_title":"ASFunding_bot","message_id":299,"msg":"Новое сообщение: \"⚡️ **Сигнал по фандингу (BYBIT)**\n🔹 **Инструмент:...\""}
+{"level":"info","time":"2026-02-28T08:59:01.971Z","pid":5802,"hostname":"xloyvpacdg","id":"148388","channel":"ASFunding_bot","ticker":"SOPHUSDT","signal_type":"funding_rate","msg":"✅ Сообщение сохранено"}
+{"level":"info","time":"2026-02-28T08:59:01.971Z","pid":5802,"hostname":"xloyvpacdg","id":"148388","channel":"ASFunding_bot","ticker":"SOPHUSDT","direction":null,"entryPrice":null,"stopLoss":null,"takeProfit":null,"signalType":"funding_rate","msg":"✅ Сообщение обработано"}
+{"level":"info","time":"2026-02-28T08:59:56.751Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:00:56.756Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:01:27.984Z","pid":5802,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T09:01:28.974Z","pid":5802,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T09:01:38.062Z","pid":5802,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T09:01:38.189Z","pid":5802,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T09:01:56.757Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:02:56.760Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:03:56.761Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:04:56.762Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:05:02.265Z","pid":5802,"hostname":"xloyvpacdg","type":"new_message","msg":"📨 Событие от Telegrab"}
+{"level":"info","time":"2026-02-28T09:05:02.266Z","pid":5802,"hostname":"xloyvpacdg","chat_id":2678035223,"chat_title":"VasyaBTC-Signals 🟢🔴","message_id":17729,"msg":"Новое сообщение: \"2026-02-28T09:05:01Z, BINANCE \n \n**Тикер:** ETHUSD...\""}
+{"level":"info","time":"2026-02-28T09:05:02.269Z","pid":5802,"hostname":"xloyvpacdg","id":"148389","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"long","signal_type":"quick_target","msg":"✅ Сообщение сохранено"}
+{"level":"info","time":"2026-02-28T09:05:02.270Z","pid":5802,"hostname":"xloyvpacdg","id":"148389","channel":"VasyaBTC-Signals 🟢🔴","ticker":"ETHUSDT","direction":"LONG","entryPrice":1853,"stopLoss":null,"takeProfit":1861,"signalType":"quick_target","msg":"✅ Сообщение обработано"}
+{"level":"info","time":"2026-02-28T09:05:56.764Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:06:56.766Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:07:56.768Z","pid":5802,"hostname":"xloyvpacdg","clients":2,"buffer":0,"msg":"📊 Статистика"}
+{"level":"info","time":"2026-02-28T09:08:24.910Z","pid":5802,"hostname":"xloyvpacdg","ip":"::ffff:185.3.34.24","msg":"🔌 Новое WebSocket подключение"}
+{"level":"info","time":"2026-02-28T09:08:25.856Z","pid":5802,"hostname":"xloyvpacdg","clientId":"02f2bcb1-12d0-46be-954f-60addb7a25de","ip":"::ffff:185.3.34.24","msg":"✅ Клиент аутентифицирован"}
+{"level":"info","time":"2026-02-28T09:08:56.770Z","pid":5802,"hostname":"xloyvpacdg","clients":3,"buffer":0,"msg":"📊 Статистика"}
