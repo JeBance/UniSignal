@@ -90,10 +90,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             const ticker = formattedSignal.parsedSignal?.signal?.instrument?.ticker || formattedSignal.ticker || '';
             const direction = formattedSignal.parsedSignal?.signal?.direction?.side?.toUpperCase() || formattedSignal.direction || '';
             const messageText = `📡 Новый сигнал: ${direction} ${ticker}`.trim();
-            
+
+            console.log('Showing toast notification, onSignalClick:', !!onSignalClick);
             toast.success(messageText, {
               onClick: () => {
-                onSignalClick?.(formattedSignal);
+                console.log('Toast clicked, calling onSignalClick...');
+                if (onSignalClick) {
+                  console.log('Calling onSignalClick with signal:', formattedSignal.id);
+                  onSignalClick(formattedSignal);
+                } else {
+                  console.warn('onSignalClick is not set!');
+                }
               },
               style: { cursor: 'pointer' }
             });

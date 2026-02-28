@@ -54,18 +54,21 @@ function App() {
 
   // Установка обработчика клика на сигнал
   useEffect(() => {
-    setOnSignalClick((signal: any) => {
+    const handleSignalClick = (signal: any) => {
+      console.log('Signal clicked:', signal.id);
       setSelectedSignalForModal(signal);
       setShowSignalModal(true);
-      if (currentPage !== 'signals') {
-        setCurrentPage('signals');
-      }
-    });
+      setCurrentPage('signals');
+    };
+
+    console.log('Setting onSignalClick handler');
+    setOnSignalClick(() => handleSignalClick);
 
     return () => {
+      console.log('Clearing onSignalClick handler');
       setOnSignalClick(() => undefined);
     };
-  }, [currentPage, setOnSignalClick]);
+  }, [setOnSignalClick]);
 
   useEffect(() => {
     // Проверяем ключ только при загрузке страницы из localStorage
