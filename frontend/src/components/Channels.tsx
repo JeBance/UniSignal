@@ -174,11 +174,11 @@ export default function Channels({ adminKey }: ChannelsProps) {
       if (response.ok) {
         // Очищаем IndexedDB
         await clearSignalsDB();
-        
+
         alert(`✅ Удалено ${result.deleted} сообщений из канала "${channel.name}"`);
         
-        // Перезагружаем страницу для обновления данных
-        window.location.reload();
+        // Просто обновляем список каналов без перезагрузки страницы
+        loadChannels();
       } else {
         setError(result.error || 'Ошибка очистки истории');
       }
