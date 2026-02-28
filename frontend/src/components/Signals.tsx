@@ -61,9 +61,9 @@ export default function Signals({ authType }: SignalsProps) {
         // Проверяем пропущенные сигналы с сервера
         await loadMissingSignals();
       } else {
-        // Если IndexedDB пуст, загружаем из API
-        console.log('IndexedDB is empty, loading from API...');
-        const response = await fetch('/api/signals?limit=1000', {
+        // Если IndexedDB пуст, загружаем ВСЕ сигналы из API
+        console.log('IndexedDB is empty, loading ALL signals from API...');
+        const response = await fetch('/api/signals?limit=100000', {
           headers: authType === 'admin' 
             ? { 'X-Admin-Key': localStorage.getItem('adminKey') || '' }
             : { 'X-API-Key': localStorage.getItem('apiKey') || '' }
@@ -73,7 +73,7 @@ export default function Signals({ authType }: SignalsProps) {
           const data = await response.json();
           const apiSignals = data.signals || [];
           
-          // Сохраняем в IndexedDB для будущего использования
+          // Сохраняем ВСЕ сигналы в IndexedDB для будущего использования
           const dbFormat = apiSignals.map((s: any) => ({
             ...s,
             createdAt: Date.now()
@@ -100,8 +100,8 @@ export default function Signals({ authType }: SignalsProps) {
       if (lastTimestamp > 0) {
         console.log(`Checking for signals after ${new Date(lastTimestamp * 1000).toISOString()}`);
         
-        // Запрашиваем сигналы новее последнего timestamp
-        const response = await fetch('/api/signals?limit=1000', {
+        // Запрашиваем ВСЕ сигналы с сервера для сравнения
+        const response = await fetch('/api/signals?limit=100000', {
           headers: authType === 'admin' 
             ? { 'X-Admin-Key': localStorage.getItem('adminKey') || '' }
             : { 'X-API-Key': localStorage.getItem('apiKey') || '' }
