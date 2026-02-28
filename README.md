@@ -29,6 +29,7 @@ UniSignal Relay подключается к [Telegrab](https://github.com/JeBanc
 - [Структура проекта](#-структура-проекта)
 - [Производительность](#-производительность)
 - [Безопасность](#-безопасность)
+- [Управление сервисом](#-управление-сервисом-systemd)
 - [Troubleshooting](#-troubleshooting)
 - [Лицензия](#-лицензия)
 
@@ -984,6 +985,62 @@ UniSignal/
 npm audit
 npm audit fix
 ```
+
+---
+
+## 🛠 Управление сервисом (systemd)
+
+### Быстрые команды
+
+```bash
+# Проверка статуса
+unisignal status
+
+# Просмотр логов
+unisignal logs
+
+# Логи в реальном времени
+unisignal follow
+
+# Проверка Health endpoint
+unisignal health
+
+# Перезапуск
+unisignal restart
+
+# Остановка/запуск
+unisignal stop
+unisignal start
+```
+
+### Полные команды systemctl
+
+```bash
+# Статус сервиса
+systemctl status unisignal
+
+# Управление
+sudo systemctl start unisignal
+sudo systemctl stop unisignal
+sudo systemctl restart unisignal
+
+# Автозапуск
+sudo systemctl enable unisignal  # включить
+sudo systemctl disable unisignal # отключить
+
+# Логи
+journalctl -u unisignal -f       # follow
+journalctl -u unisignal -n 100   # последние 100 строк
+```
+
+### Файлы сервиса
+
+| Файл | Назначение |
+|------|------------|
+| `/etc/systemd/system/unisignal.service` | systemd unit файл |
+| `/root/git/UniSignal/unisignal.service` | исходный файл (git) |
+| `/usr/local/bin/unisignal` | алиас для управления |
+| `/root/git/UniSignal/unisignalctl.sh` | скрипт управления |
 
 ---
 
