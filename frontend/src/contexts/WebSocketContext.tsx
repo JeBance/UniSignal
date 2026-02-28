@@ -23,6 +23,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [onSignalClick, setOnSignalClick] = useState<((signal: any) => void) | undefined>(undefined);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const apiKeyRef = useRef<string>('');
+  const shownSignalIdsRef = useRef<Set<number>>(new Set());
 
   const connect = useCallback((apiKey: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -63,8 +64,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         } else if (message.type === 'signal') {
           // Обрабатываем два формата сообщений
           const signalData = message.data || message.payload;
-          
+
           if (signalData) {
+            const signalId = signalData.id;
+            
+            // Проверяем, не показывали ли уже этот сигнал
+            if (signalId && shownSignalIdsRef.current.has(signalId)) {
+              console.log('Signal already shown, skipping:', signalId);
+              return;
+            }
+            
             // Конвертируем формат из БД (snake_case) в frontend (camelCase)
             const formattedSignal = {
               id: signalData.id,
@@ -85,6 +94,11 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
             // Обновляем lastMessage для реактивности
             setLastMessage(formattedSignal);
+            
+            // Добавляем ID в множество показанных
+            if (signalId) {
+              shownSignalIdsRef.current.add(signalId);
+            }
 
             // Показываем уведомление с возможностью клика
             const ticker = formattedSignal.parsedSignal?.signal?.instrument?.ticker || formattedSignal.ticker || '';

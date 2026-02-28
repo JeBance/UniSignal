@@ -64,6 +64,7 @@ function App() {
     console.log('Setting onSignalClick handler');
     setOnSignalClick(() => handleSignalClick);
 
+    // Сбрасываем lastMessage при установке обработчика, чтобы не триггерить старые уведомления
     return () => {
       console.log('Clearing onSignalClick handler');
       setOnSignalClick(() => undefined);
