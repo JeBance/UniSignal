@@ -17,6 +17,7 @@ export default function Signals({ adminKey }: SignalsProps) {
   const [showModal, setShowModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const lastProcessedSignalId = useRef<number | null>(null);
 
   // Фильтры
   const [filterDirection, setFilterDirection] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL');
@@ -128,6 +129,22 @@ export default function Signals({ adminKey }: SignalsProps) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const apiKeyRef = useRef<string | null>(null);
+  const { setOnSignalClick } = useWebSocket();
+
+  // Устанавливаем обработчик клика на сигнал
+  useEffect(() => {
+    const handleSignalClick = (signal: any) => {
+      console.log('Signal clicked in Signals.tsx:', signal.id);
+      setSelectedSignal(signal);
+      setShowModal(true);
+    };
+
+    setOnSignalClick(handleSignalClick);
+
+    return () => {
+      setOnSignalClick(undefined);
+    };
+  }, [setOnSignalClick]);
 
   // Синхронизация wsConnected с контекстом
   useEffect(() => {
@@ -137,6 +154,12 @@ export default function Signals({ adminKey }: SignalsProps) {
   // Обработка новых сигналов из WebSocket
   useEffect(() => {
     if (lastMessage && lastMessage.id) {
+      // Проверяем, не обработали ли уже этот сигнал
+      if (lastProcessedSignalId.current === lastMessage.id) {
+        return;
+      }
+      lastProcessedSignalId.current = lastMessage.id;
+      
       // Проверяем, есть ли уже такой сигнал в таблице
       setSignals(prev => {
         const exists = prev.some(s => s.id === lastMessage.id);
@@ -147,12 +170,10 @@ export default function Signals({ adminKey }: SignalsProps) {
         // Добавляем новый сигнал в начало списка
         toast.success(`📡 Новый сигнал добавлен в таблицу`);
         
-        // Открываем модальное окно для нового сигнала
-        setSelectedSignal(newSignal);
-        setShowModal(true);
+        // НЕ открываем модальное окно автоматически
+        // Оно откроется при клике на уведомление через onSignalClick
         
         // Подгружаем полную информацию с сервера для ЭТОГО сигнала
-        // Загружаем последние 50 сигналов, чтобы найти наш
         fetch(`/admin/signals?limit=50`, {
           headers: { 'X-Admin-Key': adminKey }
         })
@@ -166,13 +187,6 @@ export default function Signals({ adminKey }: SignalsProps) {
               setSignals(prev => prev.map(s => 
                 s.id === newSignal.id ? { ...s, ...fullSignal } : s
               ));
-              // Обновляем выбранный сигнал для модального окна, только если оно ещё открыто для этого сигнала
-              setSelectedSignal(prev => {
-                if (prev?.id === newSignal.id) {
-                  return fullSignal;
-                }
-                return prev;
-              });
             }
           })
           .catch(err => console.error('Failed to load full signal:', err));
