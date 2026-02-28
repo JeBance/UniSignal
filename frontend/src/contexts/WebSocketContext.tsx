@@ -85,6 +85,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
               takeProfit: signalData.take_profit || signalData.takeProfit,
               text: signalData.content_text || signalData.text,
               timestamp: signalData.timestamp,
+              // parsed_signal может быть в snake_case или camelCase
               parsedSignal: signalData.parsed_signal || signalData.parsedSignal,
             };
 
@@ -93,6 +94,14 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             await saveSignal(dbSignal);
 
             // Обновляем lastMessage для реактивности
+            console.log('Setting lastMessage with parsedSignal:', !!formattedSignal.parsedSignal);
+            if (formattedSignal.parsedSignal) {
+              console.log('parsedSignal structure:', JSON.stringify({
+                type: formattedSignal.parsedSignal.signal?.type,
+                ticker: formattedSignal.parsedSignal.signal?.instrument?.ticker,
+                direction: formattedSignal.parsedSignal.signal?.direction?.side,
+              }, null, 2));
+            }
             setLastMessage(formattedSignal);
             
             // Добавляем ID в множество показанных
